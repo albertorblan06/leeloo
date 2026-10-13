@@ -10,6 +10,8 @@ This file is the primary source of truth for the agent regarding the current sta
 - **Default branch:** `main`
 - **Remote:** `origin` uses SSH: `git@github.com:albertorblan06/leeloo.git`
 - **Project root:** The repository root contains all project files. Agent operational files are maintained in `.agents/`.
+- **Product phase:** Leeloo is in requirements discovery for a pocket-sized ESP32-S3 RSVP reader. No hardware or firmware architecture is locked yet.
+- **Planning documents:** The requirements questionnaire is in `docs/ARCHITECTURE-QUESTIONS.md`; the project overview is in `README.md`.
 
 ## Agent Records
 
