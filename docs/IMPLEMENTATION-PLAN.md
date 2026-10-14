@@ -13,12 +13,13 @@ This plan follows the locked baseline in [`ARCHITECTURE.md`](ARCHITECTURE.md). H
 
 ## Milestone 2: Hardware smoke test
 
-- Wire the OLED over I2C and confirm controller identity/configuration.
+- Confirm the exact 1.3-inch 128x64 OLED module, verify whether its controller is SH1106, and check its voltage/pin requirements before selecting the driver.
+- Wire the OLED over I2C and verify initialization/configuration against that confirmed controller.
 - Wire the EC11 phases and push-button to interrupt-capable GPIOs.
 - Validate encoder interrupts under fast rotation and switch bounce.
 - Validate LiPo/TP4056 power, charging, protection, and battery measurement.
 
-**Exit evidence:** display test pattern, measured input events without polling, safe charge/power behavior, and documented pinout.
+**Exit evidence:** display test pattern on the verified module, measured input events without polling, safe charge/power behavior, and documented pinout.
 
 ## Milestone 3: Firmware foundation
 
@@ -68,7 +69,7 @@ This plan follows the locked baseline in [`ARCHITECTURE.md`](ARCHITECTURE.md). H
 ## Milestone 8: Hardening and release candidate
 
 - Run unit tests for all implemented pure logic and repeat hardware regression checks.
-- Measure memory, display refresh, upload throughput, storage headroom, and battery behavior.
+- Measure memory, OLED refresh/readability, upload throughput, storage headroom, and battery behavior.
 - Review dependency licenses and select the project license.
 - Update README and architecture notes with measured constraints and known limitations.
 

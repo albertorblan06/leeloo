@@ -16,7 +16,7 @@
 
 9. Antigravity como editor preferido 
 
-10. OLED de 0.96 pulgadas I2C IIC SPI Serial 128x64. Definiciones del pin: VCC: 3,3 V - 5 V. GND: conectar a tierra. SCL: reloj serial. SDA: datos seriales. Modo de comunicación: IIC. Tamaño de la pantalla: 2,4 cm. 
+10. OLED monocromo de 1.3 pulgadas, 128x64, con interfaz I2C (IIC). El controlador probablemente sea SH1106, pero todavía no se ha confirmado con el módulo exacto. Pines: VCC (3,3 V - 5 V), GND, SCL y SDA.
 
 11. Estrictamente I2C
 
@@ -131,5 +131,4 @@
 66. pruebas unitarias de todo lo que se implemente
 
 67. choose a sensible default
-
 

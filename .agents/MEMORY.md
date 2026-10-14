@@ -27,3 +27,10 @@
 - Defined the single UTF-8 metadata-header book format and mathematical paused page estimate without sidecar files or inline page markers.
 - Added `docs/ARCHITECTURE.md` and `docs/IMPLEMENTATION-PLAN.md` with architecture boundaries, assumptions, milestones, and exit evidence.
 - Added `.gitignore` to exclude `.DS_Store`.
+
+## 2026-10-14 — OLED display specification revised
+
+- Updated the display target from 0.96-inch to 1.3-inch monochrome 128x64 over I2C.
+- Recorded SH1106 as the likely but unverified controller.
+- Kept controller and module voltage/pin verification as a hardware purchase and driver-selection gate.
+- Updated the requirements answers, architecture, implementation plan, README, and agent context to match.

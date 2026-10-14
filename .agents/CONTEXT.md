@@ -12,6 +12,7 @@ This file is the primary source of truth for the agent regarding the current sta
 - **Project root:** The repository root contains all project files. Agent operational files are maintained in `.agents/`.
 - **Product phase:** Leeloo has a documented architecture baseline and implementation roadmap; hardware purchase and firmware implementation are gated by board/display/power validation.
 - **Product baseline:** Requirements answers are recorded in `docs/ARCHITECTURE-ANSWERS.md`; the normalized architecture is in `docs/ARCHITECTURE.md`; the implementation roadmap is in `docs/IMPLEMENTATION-PLAN.md`.
+- **Display:** 1.3-inch monochrome 128x64 OLED over I2C; SH1106 is likely but unverified pending exact module identification.
 - **Planning documents:** The requirements questionnaire is in `docs/ARCHITECTURE-QUESTIONS.md`; the project overview is in `README.md`.
 
 ## Agent Records

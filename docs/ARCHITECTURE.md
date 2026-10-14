@@ -29,9 +29,10 @@ The ESP32 does not receive or parse PDF files. It receives normalized UTF-8 text
 
 ### 3.2 Display
 
-- 0.96-inch monochrome 128x64 OLED.
+- 1.3-inch monochrome 128x64 OLED.
 - I2C only.
-- The exact controller must be confirmed before implementation; the display adapter must isolate controller-specific initialization.
+- SH1106 is the likely controller, but remains provisional until the exact display module is identified. Confirm the controller and module voltage/pin requirements before purchase and driver selection.
+- The display adapter must isolate controller-specific initialization so the driver can be adjusted if the module uses a different controller.
 - Spanish Latin characters must be supported through a bundled bitmap font or a compatible existing font.
 - Brightness is configurable in Settings.
 

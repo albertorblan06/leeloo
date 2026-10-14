@@ -4,7 +4,7 @@ Leeloo is a pocket-sized RSVP (Rapid Serial Visual Presentation) reader concept 
 
 ## Concept
 
-The device is planned around an ESP32-S3, a rectangular OLED display, and a rotary encoder with an integrated push-button. Books are stored locally as lightweight text files. A phone-friendly web interface is intended to convert PDFs in the browser and transfer the resulting text to the device, keeping document processing off the microcontroller.
+The device is planned around an ESP32-S3, a 1.3-inch monochrome 128x64 I2C OLED (likely SH1106; controller not yet verified), and a rotary encoder with an integrated push-button. Books are stored locally as lightweight text files. A phone-friendly web interface is intended to convert PDFs in the browser and transfer the resulting text to the device, keeping document processing off the microcontroller.
 
 ## High-level experience
 
