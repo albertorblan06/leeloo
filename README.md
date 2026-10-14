@@ -23,6 +23,6 @@ The device is planned around an ESP32-S3, a rectangular OLED display, and a rota
 
 ## Architecture status
 
-The project is in requirements discovery. Exact hardware, protocols, libraries, file formats, power design, and performance targets are intentionally not locked yet.
+The initial architecture baseline is now documented. The product decisions are recorded in [`docs/ARCHITECTURE-ANSWERS.md`](docs/ARCHITECTURE-ANSWERS.md), the normalized technical architecture is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), and the delivery roadmap is in [`docs/IMPLEMENTATION-PLAN.md`](docs/IMPLEMENTATION-PLAN.md).
 
-The decision questionnaire is maintained in [`docs/ARCHITECTURE-QUESTIONS.md`](docs/ARCHITECTURE-QUESTIONS.md). The implementation architecture will be documented after those decisions are answered.
+The original discovery questionnaire remains available in [`docs/ARCHITECTURE-QUESTIONS.md`](docs/ARCHITECTURE-QUESTIONS.md). Hardware purchases and firmware implementation should follow the validation gates in the implementation plan, especially verification of the exact N16R8 board memory map, OLED controller, and battery/charging circuit.

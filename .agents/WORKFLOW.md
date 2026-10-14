@@ -16,6 +16,12 @@ All project files are located under the repository root. The `.agents/` director
 | `.agents/MEMORY.md` | Strict append-only history of agent actions, generated features, and decisions. |
 | `.agents/WORKFLOW.md` | Operational rules, commit policy, architecture, and this file's maintenance boundary. |
 | `.agents/ERRORS.md` | Append-only post-mortem log of errors, bugs, failed approaches, and lessons to prevent recurrence. |
+| `docs/ARCHITECTURE-QUESTIONS.md` | Original requirements questionnaire used for product discovery. |
+| `docs/ARCHITECTURE-ANSWERS.md` | User-supplied answers and product decisions, preserved as the requirements source. |
+| `docs/ARCHITECTURE.md` | Normalized product and technical architecture baseline. |
+| `docs/IMPLEMENTATION-PLAN.md` | Milestones, exit evidence, and cross-cutting validation rules. |
+| `README.md` | Public project overview and navigation to architecture documents. |
+| `.gitignore` | Repository hygiene rules for local-only files such as `.DS_Store`. |
 | Repository root | Location for all application, configuration, documentation, and other project files created for `leeloo`. |
 | `.git/` | Local Git metadata, history, branches, and remote tracking configuration. |
 

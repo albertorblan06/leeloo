@@ -6,11 +6,12 @@ This file is the primary source of truth for the agent regarding the current sta
 
 - **Project:** `leeloo`
 - **Repository:** [albertorblan06/leeloo](https://github.com/albertorblan06/leeloo)
-- **Visibility:** Private
+- **Visibility:** Public
 - **Default branch:** `main`
 - **Remote:** `origin` uses SSH: `git@github.com:albertorblan06/leeloo.git`
 - **Project root:** The repository root contains all project files. Agent operational files are maintained in `.agents/`.
-- **Product phase:** Leeloo is in requirements discovery for a pocket-sized ESP32-S3 RSVP reader. No hardware or firmware architecture is locked yet.
+- **Product phase:** Leeloo has a documented architecture baseline and implementation roadmap; hardware purchase and firmware implementation are gated by board/display/power validation.
+- **Product baseline:** Requirements answers are recorded in `docs/ARCHITECTURE-ANSWERS.md`; the normalized architecture is in `docs/ARCHITECTURE.md`; the implementation roadmap is in `docs/IMPLEMENTATION-PLAN.md`.
 - **Planning documents:** The requirements questionnaire is in `docs/ARCHITECTURE-QUESTIONS.md`; the project overview is in `README.md`.
 
 ## Agent Records
