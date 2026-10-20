@@ -1,2 +1,5 @@
 .DS_Store
 
+.pio/
+coverage/
+node_modules/

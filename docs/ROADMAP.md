@@ -25,10 +25,12 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 2. Scaffold `platformio.ini` with `esp32s3` and `native` environments, `lib/`, `test/`, `.clang-format`.
 3. Extend `.gitignore` (`.pio/`, `node_modules/`, coverage output).
 4. Add one sample pure-logic module with one passing test to prove the toolchain.
-5. Add a GitHub Actions workflow: `pio test -e native`, coverage report, ESP32 build.
+5. Add a GitHub Actions workflow: `pio test -e native` and ESP32 build (coverage and format checks are added in Phase 5; `gcovr` and `clang-format` are not installed yet).
 6. Confirm the N16R8 module, flash map, PSRAM visibility and USB flashing on the board.
 
-**Risks / decisions:** PlatformIO vs arduino-cli; pinned Arduino-ESP32 core version; N16R8 memory map is unverified until the board is in hand.
+**Status:** tasks 1–5 done (PlatformIO confirmed; `esp32s3` env is provisional, `platformio/espressif32@7.1.3`, board `esp32-s3-devkitc-1` from an Amazon listing, flash/PSRAM/partitions deliberately unset). Task 6 waits for the hardware. The first CI run on GitHub has not happened yet.
+
+**Risks / decisions:** the `esp32-s3-devkitc-1` defaults gave a ~3.3 MB app partition in the first build, so they do not describe an N16R8 module; Phase 1 must verify the memory map and set flash, PSRAM and partitions. Arduino-ESP32 core version follows the pinned platform until Phase 1 confirms it.
 
 **Done when:** clean build, `pio test -e native` passes locally and in CI on a pull request, and a serial boot log is captured from the board.
 
@@ -158,7 +160,7 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 
 | Decision | Recommendation | Needed by |
 | --- | --- | --- |
-| PlatformIO vs arduino-cli | PlatformIO (already installed, bundles Unity) | Phase 0 |
+| PlatformIO vs arduino-cli | Decided: PlatformIO (already installed, bundles Unity) | Phase 0 |
 | Web stack, pdf.js and Vitest dependencies | Approve at Phase 6 start | Phase 6 |
 | Project license | Select before public release | Phase 8 |
 | `.agents/WORKFLOW.md` rules (commit everything, Copilot trailer, `[CANARY]`) conflict with the owner's global rule of committing only on request | Reconcile before the first code commit | Phase 0 |

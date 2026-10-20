@@ -11,10 +11,8 @@ Embedded Spanish RSVP reader (ESP32-S3 firmware + phone web app). Architecture: 
 
 ### Frameworks and commands
 
-> Status: not yet runnable. `platformio.ini` is created in Phase 0 of the roadmap; until then these are the intended commands.
-
-- Firmware pure logic: PlatformIO `native` env with Unity — `pio test -e native`.
-- Web app logic (from Phase 6, once the dependency is approved): Vitest — `npm test`.
+- Firmware pure logic: PlatformIO `native` env with Unity — `pio test -e native`. Build check: `pio run -e esp32s3` (compile only; the board is provisional).
+- Web app logic (from Phase 6, once the dependency is approved): Vitest — `npm test` (not set up yet).
 - Both must pass before work is declared done.
 
 ### Structure

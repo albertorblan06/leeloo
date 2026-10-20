@@ -20,6 +20,12 @@ All project files are located under the repository root. The `.agents/` director
 | `docs/ARCHITECTURE-ANSWERS.md` | User-supplied answers and product decisions, preserved as the requirements source. |
 | `docs/ARCHITECTURE.md` | Normalized product and technical architecture baseline. |
 | `docs/IMPLEMENTATION-PLAN.md` | Milestones, exit evidence, and cross-cutting validation rules. |
+| `platformio.ini` | PlatformIO environments: `native` (host unit tests) and provisional `esp32s3`. |
+| `lib/` | Hardware-free C++ modules (e.g. `lib/leeloo_core/`). |
+| `test/` | Unity unit tests run with `pio test -e native`. |
+| `src/` | Arduino firmware entry point (`src/main.cpp`). |
+| `.github/workflows/ci.yml` | CI: host tests and ESP32 compile check. |
+| `.clang-format` | Formatting config (not enforced yet). |
 | `docs/ROADMAP.md` | Phased roadmap with objectives, tasks, risks, done criteria and open decisions. |
 | `CLAUDE.md` | Project instructions for Claude Code, including the unit-testing policy. |
 | `README.md` | Public project overview and navigation to architecture documents. |
