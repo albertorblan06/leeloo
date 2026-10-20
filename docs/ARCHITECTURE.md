@@ -15,6 +15,7 @@ The system consists of:
 3. **Phone web application:** Served by the ESP32 while upload mode is active. It converts a user-selected PDF in the browser and transfers one normalized text book to the device.
 4. **Local storage:** LittleFS for books, settings, and reading progress.
 5. **Development interface:** USB serial connection to a Mac for flashing and diagnostics.
+6. **Ambient light sensor and haptic driver:** two additional I2C peripherals, both provisional until the hardware gate (sections 3.5 and 3.6).
 
 The ESP32 does not receive or parse PDF files. It receives normalized UTF-8 text only.
 
@@ -34,7 +35,7 @@ The ESP32 does not receive or parse PDF files. It receives normalized UTF-8 text
 - SH1106 is the likely controller, but remains provisional until the exact display module is identified. Confirm the controller and module voltage/pin requirements before purchase and driver selection.
 - The display adapter must isolate controller-specific initialization so the driver can be adjusted if the module uses a different controller.
 - Spanish Latin characters must be supported through a bundled bitmap font or a compatible existing font.
-- Brightness is configurable in Settings.
+- Brightness is configurable in Settings, either Manual (fixed user level) or Auto (driven by the ambient light sensor, section 3.5).
 
 The display is information-constrained. Reading mode therefore prioritizes only WPM and battery percentage. Paused mode may display progress, estimated page, current time, and controls across multiple screens or compact layouts.
 
@@ -50,11 +51,26 @@ The display is information-constrained. Reading mode therefore prioritizes only 
 - 3.7 V 500 mAh protected LiPo, 403048-class.
 - TP4056 USB-C 5 V / 1 A charging module with protection.
 - Battery percentage is an estimate unless a dedicated fuel gauge is later added.
+- The light sensor and haptic driver must be placed in their lowest-power state before deep sleep. The haptic motor current is a budget item to be measured on the real prototype, not assumed.
 - Deep sleep is entered by a long press from the main menu.
 - A long press during Wi-Fi mode exits Wi-Fi mode; a long press during reading or pause returns to the main menu.
 - Wake is triggered by holding the encoder button during deep sleep, subject to the selected GPIO wake capability.
 
 The charging/power path must be electrically validated before connecting the battery to the prototype board.
+
+### 3.5 Ambient light sensor (provisional)
+
+- Digital sensor on the same I2C bus as the OLED. The exact part, I2C address, voltage and lux range are unverified and must be confirmed at the hardware gate, including that its address does not conflict with the display or the haptic driver.
+- Sampled at a low rate (order of a few Hz) by the ambient light service, never from an ISR.
+- Raw lux is converted to a brightness level by a pure function with exponential smoothing and hysteresis, so the display does not flicker with small or brief light changes. The mapping curve, smoothing factor and hysteresis band are named constants, tuned on the real device.
+- Settings has a brightness mode: **Auto** follows the sensor; **Manual** keeps the user-selected level (the previous behavior). If the sensor is absent or fails, the device falls back to the Manual level and reports the fault in diagnostics instead of blocking boot.
+
+### 3.6 Haptic feedback (provisional)
+
+- A dedicated haptic driver on the I2C bus drives a small vibration motor. The driver part, motor type (ERM or LRA), motor voltage and I2C address are unverified until the hardware gate.
+- The haptic service receives effect requests (`wpm_step`, `punctuation`) through a bounded queue and plays them without blocking the UI, input or RSVP timing. A full queue drops the request.
+- A global rate limiter enforces a minimum interval between effects, so high WPM never produces continuous vibration.
+- Haptics can be disabled in Settings. If the driver is absent or fails, haptics are disabled and the fault is logged.
 
 ## 4. Firmware architecture
 
@@ -79,6 +95,9 @@ Core pinning is an optimization and isolation boundary, not a license to share m
 - **Book service:** metadata parsing, UTF-8 text access, library enumeration, deletion, and progress lookup.
 - **Storage service:** LittleFS access, atomic writes, settings, and progress records.
 - **Wi-Fi/upload service:** temporary AP, per-session PIN, browser assets, upload validation, and clean shutdown.
+- **Ambient light service:** low-rate sensor sampling, smoothing/hysteresis, and brightness-level requests to the display service when brightness mode is Auto.
+- **Haptic service:** effect queue, rate limiting, and driver control.
+- **I2C bus owner:** the OLED, light sensor and haptic driver share one bus. Access is serialized through a single owner or mutex, and bus traffic must never delay RSVP word timing; this is verified on hardware.
 - **Power service:** battery estimate, brightness, deep sleep, wake handling, and low-battery policy.
 - **Diagnostics:** USB serial logs in development and reduced error reporting in release builds.
 
@@ -147,7 +166,7 @@ These are starting limits, not hardware guarantees; the partition table and uplo
 
 Required persistence:
 
-- Settings: WPM, brightness, seek step, configured time, and display preferences.
+- Settings: WPM, brightness mode (auto or manual), manual brightness level, haptics enabled, seek step, configured time, and display preferences.
 - Per-book progress: exact byte offset at the current cursor, saved when leaving a book and on controlled shutdown.
 - Atomic temporary-file-then-rename upload and metadata writes.
 - Deletion must complete through the storage service and report failure rather than silently continuing.
@@ -163,6 +182,7 @@ On power loss, incomplete temporary files are ignored/removed during boot. A fil
 - Token: exactly one word.
 - Spanish punctuation and sentence boundaries add configurable pauses.
 - Long words and numeric tokens may receive bounded extra dwell time.
+- Haptic cues while reading: one short pulse for each WPM step, and, as an optional setting, one pulse when a punctuation mark is reached. Punctuation cues pass through the haptic rate limiter and are not emitted while paused. Whether the punctuation cue is enabled by default is decided after testing it on the device.
 - One focal letter is highlighted where the selected font/layout permits.
 - The byte offset is the persistence anchor; the engine reconstructs the current token from the normalized text.
 - Completion percentage is based on content offset relative to content length.
@@ -177,7 +197,7 @@ Because UTF-8 characters may occupy multiple bytes, offsets must always be valid
 - Validate metadata, UTF-8, delimiter placement, size limits, and free space before committing an upload.
 - Use atomic replacement for files and progress records.
 - Keep USB serial diagnostics detailed in development; release builds should expose only actionable error codes/messages.
-- Unit-test every implemented pure logic component, especially tokenization, timing, metadata parsing, page estimation, offset recovery, and input-event classification.
+- Unit-test every implemented pure logic component, especially tokenization, timing, metadata parsing, page estimation, offset recovery, input-event classification, lux-to-brightness mapping with hysteresis, the haptic rate limiter, and punctuation-to-effect mapping.
 - No secure boot, flash encryption, signed OTA, or book encryption is required for this trusted prototype.
 
 ## 9. Language and documentation
@@ -194,4 +214,5 @@ Because UTF-8 characters may occupy multiple bytes, offsets must always be valid
 - OTA updates.
 - Home-network/cloud connectivity.
 - Custom enclosure design.
+- Audio output and motion/gesture sensing (IMU) in the MVP.
 - Production security hardening.

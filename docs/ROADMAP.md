@@ -28,7 +28,9 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 5. Add a GitHub Actions workflow: `pio test -e native` and ESP32 build (coverage and format checks are added in Phase 5; `gcovr` and `clang-format` are not installed yet).
 6. Confirm the N16R8 module, flash map, PSRAM visibility and USB flashing on the board.
 
-**Status:** tasks 1–5 done (PlatformIO confirmed; `esp32s3` env is provisional, `platformio/espressif32@7.1.3`, board `esp32-s3-devkitc-1` from an Amazon listing, flash/PSRAM/partitions deliberately unset). Task 6 waits for the hardware. The first CI run on GitHub has not happened yet.
+**Status:** tasks 1–5 done (PlatformIO confirmed; `esp32s3` env is provisional, `platformio/espressif32@7.1.3`, board `esp32-s3-devkitc-1` from an Amazon listing, flash/PSRAM/partitions deliberately unset). Task 6 waits for the hardware.
+
+**TODO (CI, pendiente):** `.github/workflows/ci.yml` está escrito pero no se ejecuta: GitHub bloquea los jobs porque la cuenta tiene un problema de facturación ("account is locked due to a billing issue"). Cuando se resuelva: (1) relanzar el último run con `gh run rerun 39415089921` o hacer push; (2) comprobar que `ubuntu-latest` funciona, porque migra a Ubuntu 26 el 19/10/2026 — si falla, fijar `runs-on: ubuntu-24.04`; (3) confirmar que `pio test -e native` y `pio run -e esp32s3` pasan en la CI.
 
 **Risks / decisions:** the `esp32-s3-devkitc-1` defaults gave a ~3.3 MB app partition in the first build, so they do not describe an N16R8 module; Phase 1 must verify the memory map and set flash, PSRAM and partitions. Arduino-ESP32 core version follows the pinned platform until Phase 1 confirms it.
 
@@ -42,10 +44,11 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 1. Identify the OLED module and controller (SH1106 is only likely), voltage and pinout.
 2. Wire the OLED over I2C and show a test pattern.
 3. Wire the EC11 to interrupt-capable GPIOs; measure fast rotation and switch bounce.
+3a. Confirm the light sensor and haptic driver parts, I2C addresses and motor type; check the three I2C devices share one bus; read lux values, drive the motor, and measure current.
 4. Validate the LiPo/TP4056 charge, protection and battery measurement path **before** connecting the battery to the board.
 5. Write the pinout document and hardware checklists.
 
-**Risks / decisions:** wrong display controller (keep the display adapter isolated); battery safety.
+**Risks / decisions:** wrong display controller (keep the display adapter isolated); battery safety; I2C address conflicts and bus contention between OLED, light sensor and haptic driver; haptic motor current on the 500 mAh LiPo.
 
 **Done when:** test pattern on the verified OLED, interrupt-driven input events measured without polling, documented pinout, and a completed power checklist.
 
@@ -59,6 +62,7 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 3. UI state machine.
 4. Spanish string table.
 5. Display adapter, font and brightness.
+5a. Lux-to-brightness mapping (smoothing, hysteresis) and haptic rate limiter as pure logic behind `ILightSensor` and `IHaptic`.
 6. Boot, logging, watchdog and error states.
 
 **Risks / decisions:** font coverage for Spanish glyphs; ISR/queue design.
@@ -92,8 +96,9 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 4. Pause/resume and word seeking.
 5. Completion percentage and estimated page.
 6. End-of-book actions.
+7. WPM-step and optional punctuation haptic requests (rate-limited).
 
-**Risks / decisions:** pause weights need tuning with real reading.
+**Risks / decisions:** pause weights need tuning with real reading; punctuation haptics may be annoying at high WPM, so they stay optional until tested.
 
 **Done when:** timing and token tests are deterministic, a test proves offsets never split a UTF-8 code point over a Spanish fixture, and the fixture book reads correctly on the device.
 
@@ -131,13 +136,13 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 **Objective:** the complete product flow on real hardware.
 
 **Tasks (in order):**
-1. Integrate Library, Upload Book, Settings, Reading, Paused and Error states.
+1. Integrate Library, Upload Book, Settings (including Auto/Manual brightness and haptics), Reading, Paused and Error states.
 2. Temporary AP lifecycle and long-press cancellation.
 3. Battery estimate and low-battery behavior.
-4. Deep sleep and encoder wake.
+4. Deep sleep and encoder wake, with the light sensor and haptic driver in low-power state.
 5. Progress persistence on normal exit and controlled power interruption.
 
-**Risks / decisions:** wake-capable GPIO choice; core 0 / core 1 shared-state races.
+**Risks / decisions:** wake-capable GPIO choice; core 0 / core 1 shared-state races; I2C traffic delaying RSVP word timing; brightness flicker.
 
 **Done when:** the end-to-end acceptance checklist passes on the real board with a representative book.
 
@@ -162,6 +167,7 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 | --- | --- | --- |
 | PlatformIO vs arduino-cli | Decided: PlatformIO (already installed, bundles Unity) | Phase 0 |
 | Web stack, pdf.js and Vitest dependencies | Approve at Phase 6 start | Phase 6 |
+| Final light sensor and haptic driver parts; whether punctuation haptics are on by default | Decide after the Phase 1 hardware check and a feel test | Phase 1 / Phase 4 |
 | Project license | Select before public release | Phase 8 |
 | `.agents/WORKFLOW.md` rules (commit everything, Copilot trailer, `[CANARY]`) conflict with the owner's global rule of committing only on request | Reconcile before the first code commit | Phase 0 |
 

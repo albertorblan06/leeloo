@@ -13,6 +13,7 @@ This file is the primary source of truth for the agent regarding the current sta
 - **Product phase:** Leeloo has a documented architecture baseline and implementation roadmap; hardware purchase and firmware implementation are gated by board/display/power validation.
 - **Product baseline:** Requirements answers are recorded in `docs/ARCHITECTURE-ANSWERS.md`; the normalized architecture is in `docs/ARCHITECTURE.md`; the implementation milestones are in `docs/IMPLEMENTATION-PLAN.md`; the phased roadmap is in `docs/ROADMAP.md`; the unit-testing policy is in the root `CLAUDE.md`.
 - **Build/test:** PlatformIO is confirmed. `pio test -e native` runs Unity tests for `lib/`; `pio run -e esp32s3` is a compile-only check. The ESP32 board is taken from an Amazon listing and is unverified until the Phase 1 hardware gate.
+- **Added I/O (provisional):** a digital I2C ambient light sensor drives Auto/Manual display brightness, and an I2C haptic driver gives vibration cues (WPM step; optional punctuation). Parts, addresses, motor type and pins are unverified until the Phase 1 hardware gate.
 - **Display:** 1.3-inch monochrome 128x64 OLED over I2C; SH1106 is likely but unverified pending exact module identification.
 - **Planning documents:** The requirements questionnaire is in `docs/ARCHITECTURE-QUESTIONS.md`; the project overview is in `README.md`.
 

@@ -46,3 +46,9 @@
 - Added `platformio.ini` (`native` + provisional `esp32s3` on `platformio/espressif32@7.1.3`), `lib/leeloo_core/` (UTF-8 sequence length helper), `test/test_smoke/`, minimal `src/main.cpp`, `.clang-format`, `.gitignore` entries and `.github/workflows/ci.yml`.
 - Verified locally: `pio test -e native` passes (4 tests) and fails when an assertion is broken; `pio run -e esp32s3` builds. CI has not run on GitHub yet.
 - Deliberately not set: flash size, PSRAM, partitions and core version (hardware unverified). Coverage and format enforcement deferred to Phase 5 (`gcovr`, `clang-format` not installed).
+
+## 2026-10-20 — Ambient light sensor and haptic feedback added to the architecture
+
+- Added a digital I2C ambient light sensor (Auto/Manual brightness with smoothing and hysteresis) and an I2C haptic driver (cues on WPM step and, optionally, punctuation) to `docs/ARCHITECTURE.md`, the implementation plan, the roadmap, the requirements addendum, README and context.
+- All new parts, I2C addresses, motor type, current budget and pins are explicitly unverified until the Phase 1 hardware gate. Punctuation haptics are optional; their default is decided after a feel test.
+- Documentation only; no code or build changes.

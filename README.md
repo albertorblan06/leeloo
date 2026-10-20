@@ -15,7 +15,7 @@ The device is planned around an ESP32-S3, a 1.3-inch monochrome 128x64 I2C OLED 
 
 ## Major product areas
 
-- **Embedded device:** display, rotary input, local storage, power, and enclosure.
+- **Embedded device:** display, rotary input, ambient light sensor with automatic brightness, haptic feedback, local storage, power, and enclosure.
 - **RSVP reader:** text presentation, pacing, progress, navigation, and reading position.
 - **Phone web interface:** browser-side document conversion and device file transfer.
 - **Library and settings:** stored books, speed, brightness, memory management, and device preferences.

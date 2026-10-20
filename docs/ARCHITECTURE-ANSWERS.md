@@ -132,3 +132,17 @@
 
 67. choose a sensible default
 
+## Adenda 2026-10-20: mas entrada/salida
+
+68. Se anade un sensor de luz ambiente que ajusta automaticamente el brillo de la pantalla segun la luz.
+
+69. Sensor de luz digital por I2C, compartiendo bus con la OLED.
+
+70. Se anade una vibracion haptica pequena mediante un driver haptico por I2C.
+
+71. La vibracion se activa al cambiar el WPM y, tal vez, al llegar a un signo de puntuacion (. , etc.). La vibracion por puntuacion queda como opcional.
+
+72. El brillo tendra modo Auto/Manual en Settings.
+
+73. Las piezas exactas, direcciones I2C, tipo de motor y pines quedan sin verificar hasta tener el hardware.
+

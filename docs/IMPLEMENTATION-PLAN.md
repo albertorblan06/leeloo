@@ -18,6 +18,8 @@ This plan follows the locked baseline in [`ARCHITECTURE.md`](ARCHITECTURE.md). H
 - Wire the EC11 phases and push-button to interrupt-capable GPIOs.
 - Validate encoder interrupts under fast rotation and switch bounce.
 - Validate LiPo/TP4056 power, charging, protection, and battery measurement.
+- Confirm the light sensor and haptic driver parts, I2C addresses, voltages and motor type; verify the three I2C devices coexist on one bus without address conflicts.
+- Read plausible lux values from the sensor, drive the motor through the haptic driver, and measure haptic and sensor current.
 
 **Exit evidence:** display test pattern on the verified module, measured input events without polling, safe charge/power behavior, and documented pinout.
 
@@ -27,6 +29,7 @@ This plan follows the locked baseline in [`ARCHITECTURE.md`](ARCHITECTURE.md). H
 - Implement the FreeRTOS input task and semantic event queue.
 - Implement the UI state machine and Spanish text resources.
 - Implement display rendering and brightness settings.
+- Implement the lux-to-brightness mapping (smoothing and hysteresis) and the haptic rate limiter as pure-logic modules behind `ILightSensor` and `IHaptic` interfaces.
 
 **Exit evidence:** boot-to-menu flow, deterministic input behavior, and unit tests for event classification/state transitions.
 
@@ -44,6 +47,7 @@ This plan follows the locked baseline in [`ARCHITECTURE.md`](ARCHITECTURE.md). H
 - Implement strict word tokenization over normalized UTF-8 text.
 - Implement WPM timing, punctuation pauses, focal-letter selection, and speed adjustment.
 - Implement pause/resume, word seeking, completion percentage, estimated page, and end-of-book actions.
+- Emit WPM-step and optional punctuation haptic requests from the engine through the haptic queue.
 - Validate byte offsets never split UTF-8 code points.
 
 **Exit evidence:** deterministic host-side timing/token tests and device reading of a known Spanish fixture book.
@@ -62,6 +66,8 @@ This plan follows the locked baseline in [`ARCHITECTURE.md`](ARCHITECTURE.md). H
 - Integrate menu, Library, Upload Book, Settings, Reading, Paused, and Error states.
 - Add temporary AP lifecycle and long-press cancellation.
 - Add battery estimate, low-battery behavior, deep sleep, and encoder wake.
+- Add the Auto/Manual brightness mode and the haptics setting to Settings; put the sensor and haptic driver in low-power state before deep sleep.
+- Measure that I2C traffic does not delay RSVP word timing.
 - Verify progress persistence on normal exit and controlled power interruption.
 
 **Exit evidence:** end-to-end acceptance checklist passes on the real board with a representative book.
