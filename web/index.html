@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leeloo</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <p class="mark">LEELOO</p>
+    <h1>Subir libro</h1>
+    <p id="error" role="alert" hidden></p>
+
+    <form id="pin" novalidate>
+      <label for="pin-input">PIN del dispositivo</label>
+      <input id="pin-input" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" required>
+      <p class="help">Es el número de cuatro cifras que se muestra en la pantalla.</p>
+      <button type="submit">Seguir</button>
+    </form>
+
+    <section id="file" hidden>
+      <label class="button" for="file-input">Elegir PDF</label>
+      <input id="file-input" type="file" accept="application/pdf" hidden>
+      <p class="help">Solo PDF con texto seleccionable. Los escaneos no están soportados.</p>
+    </section>
+
+    <section id="busy" hidden>
+      <p id="busy-label">Convirtiendo…</p>
+      <progress id="progress" max="1" value="0"></progress>
+      <button id="cancel" type="button">Cancelar</button>
+    </section>
+
+    <form id="review" hidden novalidate>
+      <label for="title">Título</label>
+      <input id="title" maxlength="120" required>
+      <label for="author">Autor</label>
+      <input id="author" maxlength="120">
+      <p id="stats" class="help"></p>
+      <button type="submit">Enviar al dispositivo</button>
+    </form>
+
+    <section id="done" hidden>
+      <p>Libro enviado.</p>
+      <button id="again" type="button">Subir otro</button>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
