@@ -81,3 +81,29 @@
 - Firmware: the last piece of a word carries its hold; earlier pieces of a split word get a normal beat. Paragraph test text has a blank line after "fallo.".
 - Known limit: abbreviations such as "Sr." count as sentence ends (`shortcut:` in `rsvp.cpp`).
 - Pause durations are chosen by the user ("Marcado" preset); whether they feel right is validated only on the board.
+
+## 2026-11-05 — Temporary 3-button input instead of the EC11 encoder
+
+- Decision (user): temporarily replace the encoder with three 4-pin push buttons: UP and DOWN to move through menus, SELECT to confirm.
+- Proposed wiring recorded in `docs/hardware-checklists/buttons-input.md`: UP=GPIO4, DOWN=GPIO5, SELECT=GPIO6, each button to GND with the internal pull-up, wired diagonally across the 4 pins.
+- Documentation only; no firmware change yet. Not wired or verified on hardware. `docs/ARCHITECTURE.md` still describes the EC11 as the target input.
+
+## 2026-11-05 — Button test menu on `dev` (uncommitted)
+
+- `src/main.cpp` replaced by a button test menu: Probar botones, Contador, Acerca de. UP/DOWN move, SELECT short enters, SELECT long goes back. Each button has its own ISR that only queues the raw edge; an input task debounces and classifies (short/long) and then sends UI events.
+- Pure logic in `lib/menu` (`Menu`) and `lib/buttons` (`Debouncer`, `classify`, `elapsed_ms`), with 10 new Unity tests. `pio test -e native` 69 passed; `pio run -e esp32s3` builds without warnings.
+- Debounce 20 ms and long press 800 ms are initial values, not measured. The input task samples the pins once after an edge settles; it does not poll while idle.
+- The OLED view `rsvp_view` lives on `main` only; this `dev` test draws its own screens. Hardware not yet verified: see the menu section in `docs/hardware-checklists/buttons-input.md`.
+
+## 2026-11-05 — Joystick replaces the 3 buttons (branch `dev`, uncommitted)
+
+- User wired an analog joystick: VRy=GPIO4, VRx=GPIO5 (ADC1), SW=GPIO7 (pull-up to GND), VCC to 3V3. The SELECT button on GPIO6 never worked; the cause was not found (pin vs wiring vs long press), so SW uses a different pin.
+- New `lib/joystick` (`Axis`: dead zone 800, hysteresis 500, fixed-point center, no auto-repeat) with 8 Unity tests; `pio test -e native` 77 passed. `src/main.cpp`: SW keeps ISR + `Debouncer`; the axes are sampled every 10 ms in `axis_task` after averaging 16 samples as the center at boot (shortcut: stick assumed untouched at boot).
+- Deviation from the "no polling" rule is limited to the ADC axes (no interrupt exists for them); the switch stays interrupt-driven.
+- Flashed on the board over the native USB port; the user has not confirmed the behavior yet. Checklist: `docs/hardware-checklists/joystick-input.md`. Up/down direction is a guess (Y low = UP).
+
+## 2026-11-05 — Fix: SW presses lost intermittently (branch `dev`, uncommitted)
+
+- Root cause (by reading, not reproduced on hardware): `switch_task` sampled the pin once after a `pdMS_TO_TICKS(20)` wait and then stopped waiting. The timeout can fire at 19 ms of real time, so `Debouncer::update` answered `None`, nothing woke the task again, and the whole press was lost.
+- Fix: `Debouncer::pending()` (change waiting for confirmation); the task keeps sampling while it is true. Regression tests `is_pending_until_debounce_window_elapses` and `is_not_pending_after_rejected_bounce` (the first failed to compile before the fix). `pio test -e native` 79 passed; flashed on the board.
+- Still to confirm by the user: 30 quick SW presses give S = 30 (new line in `docs/hardware-checklists/joystick-input.md`).
