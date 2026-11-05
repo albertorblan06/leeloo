@@ -1,217 +1,321 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 #include <Wire.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <freertos/task.h>
 
-#include "rsvp.h"
+#include <cstddef>
+#include <cstdint>
 
-// Smoke test: shows a hardcoded phrase word by word (RSVP) on the OLED.
-// Hardware-bound, so it is covered by docs/hardware-checklists/oled-rsvp-smoke.md.
+#include "buttons.h"
+#include "joystick.h"
+#include "menu.h"
+
+// Temporary joystick test (replaces the EC11). Hardware-bound: covered by
+// docs/hardware-checklists/joystick-input.md. Pure logic lives in lib/.
 
 namespace {
 
+using leeloo::buttons::Debouncer;
+using leeloo::buttons::Edge;
+using leeloo::buttons::Press;
+using leeloo::joystick::Axis;
+using leeloo::joystick::Direction;
+
 constexpr int kSdaPin = 8;
 constexpr int kSclPin = 9;
-constexpr std::uint32_t kWpm = 200;
-constexpr char kPhrase[] =
-    "Empezamos por la alimentación general. Llevamos cinco voltios y tierra desde el Arduino "
-    "directamente a los raíles laterales de la placa. ¿Por qué? Para centralizar la distribución "
-    "de energía. Evitamos tirar cables individuales desde el microcontrolador a cada componente "
-    "porque eso genera ruido eléctrico y puntos de fallo.\n\n"
-    "Los raíles actúan como un bus de "
-    "alimentación limpio, estableciendo un voltaje de referencia estable para todo el sistema físico.";
-constexpr std::uint32_t kLoopPauseMs = 1000;
+// VRy on GPIO4 and VRx on GPIO5 (ADC1, so they keep working with Wi-Fi on);
+// SW on GPIO7 to GND with the internal pull-up.
+constexpr std::uint8_t kAxisYPin = 4;
+constexpr std::uint8_t kAxisXPin = 5;
+constexpr std::uint8_t kSwitchPin = 7;
+constexpr std::uint32_t kAxisSamplePeriodMs = 10;
+constexpr int kCalibrationSamples = 16;
 
-constexpr int kWidth = 128;
-constexpr int kCenterX = kWidth / 2;
-constexpr int kCenterY = 32;
-constexpr std::size_t kMaxWordBytes = 48;
+enum Button : std::uint8_t { kUp = 0, kDown = 1, kLeft = 2, kRight = 3, kSelect = 4 };
+constexpr std::size_t kButtonCount = 5;
+constexpr const char* kButtonNames[kButtonCount] = {"ARRIBA", "ABAJO", "IZQUIERDA", "DERECHA", "SELECT"};
 
-// One Latin-1 (_tf) font at 18 pt. Words that do not fit are split at a
-// syllable boundary instead of shrinking the font.
-const uint8_t* const kFont = u8g2_font_helvB18_tf;
+constexpr std::size_t kEdgeQueueLength = 16;
+constexpr std::size_t kUiQueueLength = 16;
 
-// The focal letter is drawn hollow: a white contour around the glyph with a
-// black inside. kOutlineGap keeps the contour from touching the neighbors.
-constexpr int kOutlineWidth = 1;
-constexpr int kOutlineGap = 1;
-constexpr int kOutlineMargin = kOutlineWidth + kOutlineGap;
+struct RawEdge {
+  bool high;
+  std::uint32_t ms;
+};
 
-// SH1106 is only the likely controller (see docs/ARCHITECTURE.md). If the
-// picture is shifted 2 px or has garbage at the edges, switch to
-// U8G2_SSD1306_128X64_NONAME_F_HW_I2C.
+struct ButtonEvent {
+  Button button;
+  Press kind;
+};
+
+enum class Screen : std::uint8_t { Menu, Buttons, Counter, About };
+
+QueueHandle_t g_edge_queue = nullptr;
+QueueHandle_t g_ui_queue = nullptr;
+
+// U8g2 is the SH1106 likely controller; see docs/ARCHITECTURE.md.
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 bool g_display_ready = false;
+
+// --- Interrupts: only queue the raw edge, never debounce here -----------------
+
+void IRAM_ATTR on_switch_edge() {
+  RawEdge edge{digitalRead(kSwitchPin) == HIGH, millis()};
+  BaseType_t woken = pdFALSE;
+  xQueueSendFromISR(g_edge_queue, &edge, &woken);
+  if (woken == pdTRUE) portYIELD_FROM_ISR();
+}
+
+// --- Switch task: debounce, classify, forward ---------------------------------
+
+void handle_switch_level(bool high, std::uint32_t now, Debouncer* debouncer, std::uint32_t* pressed_at) {
+  const Edge edge = debouncer->update(high, now);
+  if (edge == Edge::Pressed) {
+    *pressed_at = now;
+  } else if (edge == Edge::Released) {
+    const Press kind = leeloo::buttons::classify(leeloo::buttons::elapsed_ms(*pressed_at, now));
+    const ButtonEvent event{kSelect, kind};
+    xQueueSend(g_ui_queue, &event, 0);
+  }
+}
+
+// Blocks until an edge arrives. After an edge it waits one debounce window; if
+// no new edge came, it samples the pin so the debouncer can confirm the level,
+// repeating while the change is pending. Idle = no timer, no polling.
+void switch_task(void*) {
+  Debouncer debouncer;
+  std::uint32_t pressed_at = 0;
+  bool settling = false;
+  for (;;) {
+    RawEdge edge;
+    const TickType_t wait = settling ? pdMS_TO_TICKS(leeloo::buttons::kDebounceMs) : portMAX_DELAY;
+    if (xQueueReceive(g_edge_queue, &edge, wait) == pdTRUE) {
+      settling = true;
+      handle_switch_level(edge.high, edge.ms, &debouncer, &pressed_at);
+      continue;
+    }
+    handle_switch_level(digitalRead(kSwitchPin) == HIGH, millis(), &debouncer, &pressed_at);
+    // The timeout can fire a tick before the debounce window is over; keep
+    // sampling until the change is confirmed or rejected, otherwise the press is lost.
+    settling = debouncer.pending();
+  }
+}
+
+// --- Axis task: the ADC has no interrupt, so this one samples ------------------
+// shortcut: fixed 10 ms sampling and no auto-repeat while held, upgrade when
+// the menu needs scrolling long lists.
+
+int read_axis_center(std::uint8_t pin) {
+  long sum = 0;
+  for (int i = 0; i < kCalibrationSamples; ++i) {
+    sum += analogRead(pin);
+    delay(5);
+  }
+  return static_cast<int>(sum / kCalibrationSamples);
+}
+
+void send_direction(Direction direction, Button low, Button high) {
+  if (direction == Direction::None) return;
+  const ButtonEvent event{direction == Direction::Low ? low : high, Press::Short};
+  xQueueSend(g_ui_queue, &event, 0);
+}
+
+void axis_task(void*) {
+  // The stick is assumed untouched at boot; its rest position is the center.
+  const int center_y = read_axis_center(kAxisYPin);
+  const int center_x = read_axis_center(kAxisXPin);
+  Serial.printf("Joystick centers: Y=%d X=%d\n", center_y, center_x);
+  Axis axis_y(center_y);
+  Axis axis_x(center_x);
+  for (;;) {
+    send_direction(axis_y.update(analogRead(kAxisYPin)), kUp, kDown);
+    send_direction(axis_x.update(analogRead(kAxisXPin)), kLeft, kRight);
+    vTaskDelay(pdMS_TO_TICKS(kAxisSamplePeriodMs));
+  }
+}
+
+// --- UI state -----------------------------------------------------------------
+
+struct Ui {
+  Screen screen = Screen::Menu;
+  leeloo::menu::Menu menu{3};
+  std::uint32_t presses[kButtonCount] = {};
+  bool has_last = false;
+  ButtonEvent last{kUp, Press::Short};
+  int counter = 0;
+};
+
+void open_screen(Ui* ui, Screen screen) {
+  ui->screen = screen;
+  if (screen == Screen::Buttons) ui->has_last = false;
+}
+
+// SELECT long press always returns to the main menu from a sub-screen.
+void apply_event(Ui* ui, const ButtonEvent& event) {
+  const bool long_select = event.button == kSelect && event.kind == Press::Long;
+  switch (ui->screen) {
+    case Screen::Menu:
+      if (event.button == kUp) ui->menu.up();
+      if (event.button == kDown) ui->menu.down();
+      if (event.button == kSelect && event.kind == Press::Short) {
+        const auto item = ui->menu.select();
+        if (item) open_screen(ui, static_cast<Screen>(*item + 1));
+      }
+      break;
+    case Screen::Buttons:
+      if (long_select) {
+        open_screen(ui, Screen::Menu);
+        break;
+      }
+      ui->last = event;
+      ui->has_last = true;
+      ++ui->presses[event.button];
+      break;
+    case Screen::Counter:
+      if (long_select) {
+        open_screen(ui, Screen::Menu);
+        break;
+      }
+      if (event.button == kSelect) ++ui->counter;
+      if (event.button == kUp) ++ui->counter;
+      if (event.button == kDown) --ui->counter;
+      break;
+    case Screen::About:
+      open_screen(ui, Screen::Menu);
+      break;
+  }
+}
+
+// --- Drawing -----------------------------------------------------------------
+
+void draw_header(const char* title) {
+  u8g2.setFont(u8g2_font_helvB10_tf);
+  u8g2.drawUTF8(0, 11, title);
+  u8g2.drawHLine(0, 14, 128);
+}
+
+void draw_menu(const Ui& ui) {
+  static const char* const kItems[] = {"Probar joystick", "Contador", "Acerca de"};
+  draw_header("Menu de prueba");
+  u8g2.setFont(u8g2_font_helvR10_tf);
+  for (std::size_t i = 0; i < 3; ++i) {
+    const int y = 28 + static_cast<int>(i) * 13;
+    const bool selected = i == ui.menu.index();
+    if (selected) u8g2.drawBox(0, y - 10, 128, 12);
+    u8g2.setDrawColor(selected ? 0 : 1);
+    u8g2.drawUTF8(4, y, kItems[i]);
+    u8g2.setDrawColor(1);
+  }
+}
+
+void draw_buttons(const Ui& ui) {
+  draw_header("Probar joystick");
+  u8g2.setFont(u8g2_font_helvR10_tf);
+  char line[32];
+  if (ui.has_last) {
+    snprintf(line, sizeof(line), "%s %s", kButtonNames[ui.last.button],
+             ui.last.kind == Press::Long ? "largo" : "corto");
+  } else {
+    snprintf(line, sizeof(line), "Mueve o pulsa");
+  }
+  u8g2.drawUTF8(0, 27, line);
+  const auto n = [&ui](Button b) { return static_cast<unsigned long>(ui.presses[b]); };
+  snprintf(line, sizeof(line), "A:%lu B:%lu S:%lu", n(kUp), n(kDown), n(kSelect));
+  u8g2.drawUTF8(0, 40, line);
+  snprintf(line, sizeof(line), "I:%lu D:%lu", n(kLeft), n(kRight));
+  u8g2.drawUTF8(0, 53, line);
+  u8g2.setFont(u8g2_font_6x10_tf);
+  u8g2.drawUTF8(0, 63, "SELECT largo: volver");
+}
+
+void draw_counter(const Ui& ui) {
+  draw_header("Contador");
+  char value[16];
+  snprintf(value, sizeof(value), "%d", ui.counter);
+  u8g2.setFont(u8g2_font_helvB14_tf);
+  u8g2.drawUTF8(0, 40, value);
+  u8g2.setFont(u8g2_font_6x10_tf);
+  u8g2.drawUTF8(0, 60, "UP+ DOWN- SEL+ (largo: volver)");
+}
+
+void draw_about() {
+  draw_header("Acerca de");
+  u8g2.setFont(u8g2_font_6x10_tf);
+  u8g2.drawUTF8(0, 28, "Leeloo: prueba joystick");
+  u8g2.drawUTF8(0, 40, "Y:4 X:5 SW:7");
+  u8g2.drawUTF8(0, 60, "Build " __DATE__);
+}
+
+void draw(const Ui& ui) {
+  if (!g_display_ready) return;
+  u8g2.clearBuffer();
+  switch (ui.screen) {
+    case Screen::Menu: draw_menu(ui); break;
+    case Screen::Buttons: draw_buttons(ui); break;
+    case Screen::Counter: draw_counter(ui); break;
+    case Screen::About: draw_about(); break;
+  }
+  u8g2.sendBuffer();
+}
 
 bool i2c_device_present(std::uint8_t address) {
   Wire.beginTransmission(address);
   return Wire.endTransmission() == 0;
 }
 
-// Prints every responding address and returns the OLED's (0x3C or 0x3D), or 0.
-std::uint8_t scan_i2c_for_oled() {
-  std::uint8_t oled = 0;
-  for (std::uint8_t address = 1; address < 127; ++address) {
-    if (!i2c_device_present(address)) continue;
-    Serial.printf("I2C device at 0x%02X\n", address);
-    if (oled == 0 && (address == 0x3C || address == 0x3D)) oled = address;
+// Returns 0x3C or 0x3D when the OLED answers, otherwise 0.
+std::uint8_t find_oled() {
+  for (std::uint8_t address : {std::uint8_t{0x3C}, std::uint8_t{0x3D}}) {
+    if (i2c_device_present(address)) return address;
   }
-  return oled;
+  return 0;
 }
 
-// Copies `count` bytes into `dst` and NUL-terminates it. U8g2 only measures
-// and draws NUL-terminated strings, so every piece goes through here.
-void copy_slice(char* dst, const char* src, std::size_t count) {
-  memcpy(dst, src, count);
-  dst[count] = '\0';
-}
-
-// Builds the text to show for a piece: the piece itself, plus "-" when it is
-// the first half of a split word. Returns the text length.
-std::size_t build_text(const char* word, std::size_t length, bool hyphen, char* text) {
-  copy_slice(text, word, length);
-  if (!hyphen) return length;
-  text[length] = '-';
-  text[length + 1] = '\0';
-  return length + 1;
-}
-
-// Where each part of a piece goes. The hollow focal letter is always the one
-// on the center column (x = 64), as RSVP requires, so there is no fallback
-// that re-centers the whole piece.
-struct Layout {
-  char prefix[kMaxWordBytes];
-  char focal[kMaxWordBytes];
-  char suffix[kMaxWordBytes];
-  int prefix_x;
-  int focal_x;
-  int suffix_x;
-  bool fits;  // whole piece is visible with the focal letter on the center column
-};
-
-void layout_piece(const char* word, std::size_t length, bool hyphen, Layout* out) {
-  char text[kMaxWordBytes];
-  const std::size_t text_len = build_text(word, length, hyphen, text);
-  const auto split = leeloo::rsvp::focal_split(text, length);  // hyphen is not a focal candidate
-  copy_slice(out->prefix, text, split.prefix_bytes);
-  copy_slice(out->focal, text + split.prefix_bytes, split.focal_bytes);
-  const std::size_t suffix_start = split.prefix_bytes + split.focal_bytes;
-  copy_slice(out->suffix, text + suffix_start, text_len - suffix_start);
-
-  const int prefix_w = u8g2.getUTF8Width(out->prefix);
-  const int focal_w = u8g2.getUTF8Width(out->focal);
-  const int total_w = u8g2.getUTF8Width(text) + 2 * kOutlineMargin;
-  out->prefix_x = kCenterX - prefix_w - kOutlineMargin - focal_w / 2;
-  out->focal_x = out->prefix_x + prefix_w + kOutlineMargin;
-  out->suffix_x = out->focal_x + focal_w + kOutlineMargin;
-  out->fits = out->prefix_x >= 0 && out->prefix_x + total_w <= kWidth;
-}
-
-bool fits(const char* word, std::size_t length, bool hyphen) {
-  Layout layout;
-  layout_piece(word, length, hyphen, &layout);
-  return layout.fits;
-}
-
-// U8g2 coordinates are unsigned, so a negative x would wrap around; parts
-// that start off screen are skipped instead.
-// shortcut: a piece that cannot be split and does not fit loses its off-screen
-// parts, upgrade when the book text can contain such words.
-void draw_at(int x, int y, const char* text) {
-  if (x < 0 || x >= kWidth) return;
-  u8g2.drawUTF8(x, y, text);
-}
-
-// Draws one piece with its hollow focal letter on the center column.
-void draw_piece(const char* word, std::size_t length, bool hyphen) {
-  Layout layout;
-  layout_piece(word, length, hyphen, &layout);
-
-  u8g2.clearBuffer();
-  u8g2.setFontPosCenter();
-  u8g2.setDrawColor(1);
-  u8g2.drawVLine(kCenterX, 6, 6);   // focal marks above and below the word
-  u8g2.drawVLine(kCenterX, 52, 6);
-  draw_at(layout.prefix_x, kCenterY, layout.prefix);
-  draw_at(layout.suffix_x, kCenterY, layout.suffix);
-
-  // Hollow focal letter: white copies shifted around the glyph form its
-  // contour, then the glyph in black clears the inside.
-  for (int dy = -kOutlineWidth; dy <= kOutlineWidth; ++dy) {
-    for (int dx = -kOutlineWidth; dx <= kOutlineWidth; ++dx) {
-      if (dx != 0 || dy != 0) draw_at(layout.focal_x + dx, kCenterY + dy, layout.focal);
-    }
-  }
-  u8g2.setDrawColor(0);
-  draw_at(layout.focal_x, kCenterY, layout.focal);
-  u8g2.setDrawColor(1);
-  u8g2.sendBuffer();
-}
-
-// Shows one piece for `hold` percent of a word period at kWpm, minus the time
-// the redraw took (I2C redraw is ~25 ms). 100 = one normal beat.
-void present(const char* word, std::size_t length, bool hyphen, std::uint32_t hold) {
-  const std::uint32_t period_ms = leeloo::rsvp::word_delay_ms(kWpm) * hold / 100;
-  const std::uint32_t started = millis();
-  draw_piece(word, length, hyphen);
-  const std::uint32_t elapsed = millis() - started;
-  if (elapsed < period_ms) delay(period_ms - elapsed);
-}
-
-// Shows a word, split at a syllable boundary until every piece fits with its
-// focal letter on the center column. Only the last piece keeps the word's
-// `hold` (that is where its punctuation lives); earlier pieces get a normal beat.
-// `hyphen` marks a piece followed by the rest of its word.
-void show_word(const char* word, std::size_t length, bool hyphen, std::uint32_t hold) {
-  if (length == 0 || length + 1 >= kMaxWordBytes) return;  // phrase words are short; never cut UTF-8
-
-  if (fits(word, length, hyphen)) {
-    present(word, length, hyphen, hold);
-    return;
-  }
-  const std::size_t cut = leeloo::rsvp::split_point(word, length);
-  if (cut == 0) {  // one syllable and too wide: show it clipped rather than break it
-    present(word, length, hyphen, hold);
-    return;
-  }
-  show_word(word, cut, true, 100);
-  show_word(word + cut, length - cut, hyphen, hold);
-}
-
-}  // namespace
-
-void setup() {
-  Serial.begin(115200);
+void init_display() {
   Wire.begin(kSdaPin, kSclPin);
-
-  const std::uint8_t address = scan_i2c_for_oled();
+  const std::uint8_t address = find_oled();
   if (address == 0) {
-    Serial.println("No OLED found at 0x3C/0x3D. Check wiring: SDA=GPIO8, SCL=GPIO9.");
+    Serial.println("No OLED at 0x3C/0x3D: input still reports on serial.");
     return;
   }
   u8g2.setI2CAddress(address << 1);  // U8g2 wants the 8-bit form
   u8g2.begin();
   u8g2.setBusClock(400000);
   u8g2.enableUTF8Print();
-  u8g2.setFont(kFont);
-  u8g2.setFontMode(1);  // transparent: shifted copies must not erase their neighbors
   g_display_ready = true;
 }
 
+}  // namespace
+
+void setup() {
+  Serial.begin(115200);
+  init_display();
+
+  g_edge_queue = xQueueCreate(kEdgeQueueLength, sizeof(RawEdge));
+  g_ui_queue = xQueueCreate(kUiQueueLength, sizeof(ButtonEvent));
+  if (g_edge_queue == nullptr || g_ui_queue == nullptr) {
+    Serial.println("Queue allocation failed; halting.");
+    for (;;) delay(1000);
+  }
+  pinMode(kSwitchPin, INPUT_PULLUP);
+  analogReadResolution(12);
+  xTaskCreate(switch_task, "switch", 4096, nullptr, 2, nullptr);
+  xTaskCreate(axis_task, "axis", 4096, nullptr, 2, nullptr);
+  attachInterrupt(digitalPinToInterrupt(kSwitchPin), on_switch_edge, CHANGE);
+}
+
 void loop() {
-  if (!g_display_ready) {
-    delay(1000);
-    return;
+  static Ui ui;
+  static bool drawn = false;
+  if (!drawn) {
+    draw(ui);
+    drawn = true;
   }
-
-  const std::size_t size = sizeof(kPhrase) - 1;
-  std::size_t offset = 0;
-  while (const auto span = leeloo::rsvp::next_word(kPhrase, size, offset)) {
-    const std::uint32_t hold = leeloo::rsvp::hold_percent(kPhrase, size, *span);
-    show_word(kPhrase + span->start, span->length, false, hold);
-    offset = span->start + span->length;
-  }
-
-  u8g2.clearBuffer();
-  u8g2.sendBuffer();
-  delay(kLoopPauseMs);
+  ButtonEvent event;
+  if (xQueueReceive(g_ui_queue, &event, portMAX_DELAY) != pdTRUE) return;
+  Serial.printf("%s %s\n", kButtonNames[event.button], event.kind == Press::Long ? "largo" : "corto");
+  apply_event(&ui, event);
+  draw(ui);
 }
