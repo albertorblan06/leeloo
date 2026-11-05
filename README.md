@@ -25,4 +25,6 @@ The device is planned around an ESP32-S3, a 1.3-inch monochrome 128x64 I2C OLED 
 
 The initial architecture baseline is now documented. The product decisions are recorded in [`docs/ARCHITECTURE-ANSWERS.md`](docs/ARCHITECTURE-ANSWERS.md), the normalized technical architecture is in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), the delivery milestones are in [`docs/IMPLEMENTATION-PLAN.md`](docs/IMPLEMENTATION-PLAN.md), and the phased roadmap with the unit-testing policy is in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
+The OLED visual rules are in [`docs/DESIGN.md`](docs/DESIGN.md), and the device-only menu hierarchy and behavior are specified in [`docs/DEVICE-MENU.md`](docs/DEVICE-MENU.md).
+
 The original discovery questionnaire remains available in [`docs/ARCHITECTURE-QUESTIONS.md`](docs/ARCHITECTURE-QUESTIONS.md). Hardware purchases and firmware implementation should follow the validation gates in the implementation plan, especially verification of the exact N16R8 board memory map, OLED controller, and battery/charging circuit.
