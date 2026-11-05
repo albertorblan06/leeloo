@@ -1,0 +1,68 @@
+{
+  ".agents/CONTEXT.md": {
+    "mtime": 1792494674.1761692,
+    "seen": 1792494865.859448,
+    "ast_hash": "33636a072e73d324e3e175b065fdd944",
+    "semantic_hash": "33636a072e73d324e3e175b065fdd944"
+  },
+  ".agents/ERRORS.md": {
+    "mtime": 1791884564.896803,
+    "seen": 1792494244.730856,
+    "ast_hash": "963a03137c92330d5958a06fc86ac3e0",
+    "semantic_hash": "963a03137c92330d5958a06fc86ac3e0"
+  },
+  ".agents/MEMORY.md": {
+    "mtime": 1792494674.1090162,
+    "seen": 1792494865.859456,
+    "ast_hash": "1a717960d395606bc7555486cbe6566f",
+    "semantic_hash": "1a717960d395606bc7555486cbe6566f"
+  },
+  ".agents/WORKFLOW.md": {
+    "mtime": 1792494674.1764896,
+    "seen": 1792494865.859457,
+    "ast_hash": "17665f972651925ba24428638f2294d9",
+    "semantic_hash": "17665f972651925ba24428638f2294d9"
+  },
+  "README.md": {
+    "mtime": 1792494674.175906,
+    "seen": 1792494865.8594592,
+    "ast_hash": "d69874f1e7a3918793a1fb4b79dc34d3",
+    "semantic_hash": "d69874f1e7a3918793a1fb4b79dc34d3"
+  },
+  "docs/ARCHITECTURE-ANSWERS.md": {
+    "mtime": 1791999088.9650257,
+    "seen": 1792494244.730859,
+    "ast_hash": "8e2025f1140bfc711c3d78a5203746dd",
+    "semantic_hash": "8e2025f1140bfc711c3d78a5203746dd"
+  },
+  "docs/ARCHITECTURE-QUESTIONS.md": {
+    "mtime": 1791886735.2509573,
+    "seen": 1792494244.73086,
+    "ast_hash": "115efe88947f837045cb90a9a6be1ba6",
+    "semantic_hash": "115efe88947f837045cb90a9a6be1ba6"
+  },
+  "docs/ARCHITECTURE.md": {
+    "mtime": 1791999088.9670396,
+    "seen": 1792494244.730861,
+    "ast_hash": "536a5c8356693e3f71ffac561f6866b0",
+    "semantic_hash": "536a5c8356693e3f71ffac561f6866b0"
+  },
+  "docs/IMPLEMENTATION-PLAN.md": {
+    "mtime": 1791999088.9685805,
+    "seen": 1792494244.730861,
+    "ast_hash": "5caf97935942491d96facdc3145a93a5",
+    "semantic_hash": "5caf97935942491d96facdc3145a93a5"
+  },
+  "CLAUDE.md": {
+    "mtime": 1792494583.870223,
+    "seen": 1792494865.859458,
+    "ast_hash": "6dbeaac0fad7ab97d0e5040b08f4e3a2",
+    "semantic_hash": "6dbeaac0fad7ab97d0e5040b08f4e3a2"
+  },
+  "docs/ROADMAP.md": {
+    "mtime": 1792494579.4805505,
+    "seen": 1792494865.859463,
+    "ast_hash": "57a9d7bf76387a1a5da2d2beaa53ad2a",
+    "semantic_hash": "57a9d7bf76387a1a5da2d2beaa53ad2a"
+  }
+}

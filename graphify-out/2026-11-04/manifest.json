@@ -1,0 +1,122 @@
+{
+  ".agents/CONTEXT.md": {
+    "mtime": 1792497098.6226678,
+    "seen": 1792497328.603759,
+    "ast_hash": "2cfcb77c3815b8c890da342ac4e8bffc",
+    "semantic_hash": "2cfcb77c3815b8c890da342ac4e8bffc"
+  },
+  ".agents/ERRORS.md": {
+    "mtime": 1791884564.896803,
+    "seen": 1792494244.730856,
+    "ast_hash": "963a03137c92330d5958a06fc86ac3e0",
+    "semantic_hash": "963a03137c92330d5958a06fc86ac3e0"
+  },
+  ".agents/MEMORY.md": {
+    "mtime": 1793792101.2547398,
+    "seen": 1793792101.8140411,
+    "ast_hash": "b1e2f9cf3c676b32b9fe2f220add3dae",
+    "semantic_hash": ""
+  },
+  ".agents/WORKFLOW.md": {
+    "mtime": 1792495585.1433716,
+    "seen": 1792497328.603762,
+    "ast_hash": "21acef690826256670a149410a2673a7",
+    "semantic_hash": "21acef690826256670a149410a2673a7"
+  },
+  "README.md": {
+    "mtime": 1792497092.246423,
+    "seen": 1792497328.603764,
+    "ast_hash": "905b32ffff45aea334f83fff9d506309",
+    "semantic_hash": "905b32ffff45aea334f83fff9d506309"
+  },
+  "docs/ARCHITECTURE-ANSWERS.md": {
+    "mtime": 1792497092.2442696,
+    "seen": 1792497328.603765,
+    "ast_hash": "6c68579a2ba35b6e814742fc6f258bb8",
+    "semantic_hash": "6c68579a2ba35b6e814742fc6f258bb8"
+  },
+  "docs/ARCHITECTURE-QUESTIONS.md": {
+    "mtime": 1791886735.2509573,
+    "seen": 1792494244.73086,
+    "ast_hash": "115efe88947f837045cb90a9a6be1ba6",
+    "semantic_hash": ""
+  },
+  "docs/ARCHITECTURE.md": {
+    "mtime": 1792497092.2437265,
+    "seen": 1792497328.603765,
+    "ast_hash": "57646c1c70c7c92667696e66d8b7330d",
+    "semantic_hash": "57646c1c70c7c92667696e66d8b7330d"
+  },
+  "docs/IMPLEMENTATION-PLAN.md": {
+    "mtime": 1792497092.2449226,
+    "seen": 1792497328.603766,
+    "ast_hash": "f742c6545648b729f7887e2c8abad1da",
+    "semantic_hash": "f742c6545648b729f7887e2c8abad1da"
+  },
+  "CLAUDE.md": {
+    "mtime": 1792495585.1426885,
+    "seen": 1792497328.6037629,
+    "ast_hash": "ae203a80198fe25f0fcb8a3b08209c95",
+    "semantic_hash": "ae203a80198fe25f0fcb8a3b08209c95"
+  },
+  "docs/ROADMAP.md": {
+    "mtime": 1792497092.2460845,
+    "seen": 1792497328.6037672,
+    "ast_hash": "b660b66a6a61b6e7f515bf171d76e569",
+    "semantic_hash": "b660b66a6a61b6e7f515bf171d76e569"
+  },
+  "lib/leeloo_core/leeloo_core.cpp": {
+    "mtime": 1792495477.458037,
+    "seen": 1792497328.6037529,
+    "ast_hash": "78fa6140d3faad42b0d6938324b9c171",
+    "semantic_hash": "78fa6140d3faad42b0d6938324b9c171"
+  },
+  "lib/leeloo_core/leeloo_core.h": {
+    "mtime": 1792495477.4547079,
+    "seen": 1792497328.603756,
+    "ast_hash": "efd73b4c27d74267666d8c41d8f37da1",
+    "semantic_hash": "efd73b4c27d74267666d8c41d8f37da1"
+  },
+  "src/main.cpp": {
+    "mtime": 1793792712.4738023,
+    "seen": 1793792732.4013062,
+    "ast_hash": "0dd3c34772078fbee9e5b246ca36f82d",
+    "semantic_hash": ""
+  },
+  "test/test_smoke/test_smoke.cpp": {
+    "mtime": 1792495567.6025424,
+    "seen": 1792497328.603758,
+    "ast_hash": "46e2282c5f905764b120ae33ae9729e9",
+    "semantic_hash": "46e2282c5f905764b120ae33ae9729e9"
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1792495572.7968018,
+    "seen": 1792497328.603762,
+    "ast_hash": "b7a512ffb5fd6067270ea270b51169c1",
+    "semantic_hash": "b7a512ffb5fd6067270ea270b51169c1"
+  },
+  "lib/rsvp/rsvp.cpp": {
+    "mtime": 1793792026.7820504,
+    "seen": 1793792101.814035,
+    "ast_hash": "b4bcc8a83caf67134decdb516a683922",
+    "semantic_hash": ""
+  },
+  "lib/rsvp/rsvp.h": {
+    "mtime": 1793792012.2512233,
+    "seen": 1793792101.814036,
+    "ast_hash": "659a7b4517ca4267e379692e7da181e5",
+    "semantic_hash": ""
+  },
+  "test/test_rsvp/test_rsvp.cpp": {
+    "mtime": 1793792005.329936,
+    "seen": 1793792101.814037,
+    "ast_hash": "9a9e82a75947110ecf67642ada4283d4",
+    "semantic_hash": ""
+  },
+  "docs/hardware-checklists/oled-rsvp-smoke.md": {
+    "mtime": 1793792714.5901554,
+    "seen": 1793792732.401319,
+    "ast_hash": "b9534020d3511a2d1d74e00d45aec56c",
+    "semantic_hash": ""
+  }
+}
