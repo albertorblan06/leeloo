@@ -9,10 +9,6 @@ namespace leeloo::rsvp {
 
 namespace {
 
-constexpr std::uint32_t kMinWpm = 150;
-constexpr std::uint32_t kMaxWpm = 800;
-constexpr std::uint32_t kWpmStep = 25;
-
 bool is_continuation(char byte) {
   return (static_cast<unsigned char>(byte) & 0xC0) == 0x80;
 }
@@ -283,6 +279,10 @@ std::uint32_t hold_percent(const char* text, std::size_t size, const WordSpan& s
   if (letters > kLongWordLetters) hold = std::max(hold, kLongWordHold);
   if (count_newlines_after(text, size, end) >= 2) hold = std::max(hold, kParagraphHold);
   return hold;
+}
+
+bool ends_sentence(const char* text, std::size_t size, const WordSpan& span) {
+  return hold_percent(text, size, span) >= kSentenceHold;
 }
 
 std::uint32_t word_delay_ms(std::uint32_t wpm) {

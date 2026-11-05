@@ -39,8 +39,16 @@ std::size_t split_point(const char* word, std::size_t length);
 // ¿ ¡ ( « — never add a pause.
 std::uint32_t hold_percent(const char* text, std::size_t size, const WordSpan& span);
 
-// Milliseconds to show one word. WPM is clamped to [150, 800] and snapped to
-// steps of 25.
+// True when the word at `span` ends a sentence: a sentence mark (. ? ! …) or a
+// paragraph break after it. Same threshold as the sentence hold in hold_percent.
+bool ends_sentence(const char* text, std::size_t size, const WordSpan& span);
+
+constexpr std::uint32_t kMinWpm = 150;
+constexpr std::uint32_t kMaxWpm = 800;
+constexpr std::uint32_t kWpmStep = 25;
+
+// Milliseconds to show one word. WPM is clamped to [kMinWpm, kMaxWpm] and
+// snapped to steps of kWpmStep.
 std::uint32_t word_delay_ms(std::uint32_t wpm);
 
 }  // namespace leeloo::rsvp

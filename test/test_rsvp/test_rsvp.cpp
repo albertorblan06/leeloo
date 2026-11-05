@@ -350,6 +350,54 @@ void test_word_delay_snaps_wpm_to_25_steps() {
   TEST_ASSERT_EQUAL_UINT32(184, leeloo::rsvp::word_delay_ms(313));  // -> 325
 }
 
+
+// --- ends_sentence -------------------------------------------------------------
+
+namespace {
+
+// True when the first word of `text` ends a sentence.
+bool ends_first_sentence(const char* text) {
+  const std::size_t size = std::strlen(text);
+  auto span = leeloo::rsvp::next_word(text, size, 0);
+  if (!span) return false;
+  return leeloo::rsvp::ends_sentence(text, size, *span);
+}
+
+}  // namespace
+
+void test_ends_sentence_for_period() {
+  TEST_ASSERT_TRUE(ends_first_sentence("fin. siguiente"));
+}
+
+void test_ends_sentence_for_question_and_exclamation() {
+  TEST_ASSERT_TRUE(ends_first_sentence("¿Qué? sí"));
+  TEST_ASSERT_TRUE(ends_first_sentence("¡Bien! sí"));
+}
+
+void test_ends_sentence_for_ellipsis() {
+  TEST_ASSERT_TRUE(ends_first_sentence("pues\xE2\x80\xA6 no"));
+}
+
+void test_ends_sentence_is_false_for_comma() {
+  TEST_ASSERT_FALSE(ends_first_sentence("hola, mundo"));
+}
+
+void test_ends_sentence_is_false_for_plain_word() {
+  TEST_ASSERT_FALSE(ends_first_sentence("hola mundo"));
+}
+
+void test_ends_sentence_for_paragraph_break_without_period() {
+  TEST_ASSERT_TRUE(ends_first_sentence("titulo\n\nsiguiente"));
+}
+
+void test_ends_sentence_after_closing_quote_and_period() {
+  TEST_ASSERT_TRUE(ends_first_sentence("\"hola.\" mundo"));
+}
+
+void test_ends_sentence_is_false_for_empty_span() {
+  TEST_ASSERT_FALSE(leeloo::rsvp::ends_sentence("", 0, {0, 0}));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_next_word_returns_first_word_from_start);
@@ -405,5 +453,13 @@ int main() {
   RUN_TEST(test_word_delay_is_200ms_at_300_wpm);
   RUN_TEST(test_word_delay_clamps_wpm_to_bounds);
   RUN_TEST(test_word_delay_snaps_wpm_to_25_steps);
+  RUN_TEST(test_ends_sentence_for_period);
+  RUN_TEST(test_ends_sentence_for_question_and_exclamation);
+  RUN_TEST(test_ends_sentence_for_ellipsis);
+  RUN_TEST(test_ends_sentence_is_false_for_comma);
+  RUN_TEST(test_ends_sentence_is_false_for_plain_word);
+  RUN_TEST(test_ends_sentence_for_paragraph_break_without_period);
+  RUN_TEST(test_ends_sentence_after_closing_quote_and_period);
+  RUN_TEST(test_ends_sentence_is_false_for_empty_span);
   return UNITY_END();
 }
