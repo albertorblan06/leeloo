@@ -300,6 +300,7 @@ bool start(char* pin_out) {
   // Generated after the radio is up, so the PIN draws on RF entropy.
   format_pin(esp_random(), g_pin);
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+  config.core_id = 0;  // core 0 owns Wi-Fi and HTTP (docs/ARCHITECTURE.md §4.1); core 1 runs the UI and RSVP
   config.stack_size = 8192;  // static_handler keeps a 1 KiB buffer on the stack
   config.max_open_sockets = 4;
   config.lru_purge_enable = true;  // the page's parallel asset loads must not starve new clients

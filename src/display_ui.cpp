@@ -7,7 +7,10 @@
 #include <cstdio>
 #include <cstring>
 
-#include "reader.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+
+#include "reading_frame.h"
 #include "rsvp_view.h"
 #include "storage_books.h"
 #include "text.h"
@@ -33,6 +36,21 @@ constexpr std::size_t kTitleChars = 19;  // 6 px per character, 124 px usable
 // U8g2 wants the 8-bit form of the address; the SH1106 is the likely controller.
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 bool g_ready = false;
+
+// u8g2 keeps one current font and one frame buffer. The display task draws with
+// them and the RSVP task measures words with them (piece_count), so both hold this
+// lock. The I2C transfer in render() runs outside it: it touches neither, which
+// keeps the RSVP task from waiting for a ~25 ms screen dump. A mutex, so a waiting
+// high-priority task boosts the holder (priority inheritance).
+SemaphoreHandle_t g_u8g2_lock = nullptr;
+
+class U8g2Lock {
+ public:
+  U8g2Lock() { xSemaphoreTake(g_u8g2_lock, portMAX_DELAY); }
+  ~U8g2Lock() { xSemaphoreGive(g_u8g2_lock); }
+  U8g2Lock(const U8g2Lock&) = delete;
+  U8g2Lock& operator=(const U8g2Lock&) = delete;
+};
 
 // First visible list row, kept between frames so the list scrolls smoothly.
 std::size_t g_list_start = 0;
@@ -136,17 +154,16 @@ void book_label(std::size_t index, char* out, std::size_t cap) {
 
 // The WPM and PAUSA labels share the top-left corner: a 6x10 line that stays
 // clear of the focal marks at x = 64.
-void draw_reading(const Status& status) {
-  const leeloo::reader::Reader* reader = status.reader;
-  if (reader == nullptr) return;
-  const auto span = reader->word();
-  if (span) leeloo::view::draw_piece(u8g2, reader->body() + span->start, span->length, reader->piece());
+void draw_reading(const leeloo::app::ReadingFrame& frame) {
+  if (!frame.active) return;
+  const std::size_t length = std::strlen(frame.word);
+  if (length > 0) leeloo::view::draw_piece(u8g2, frame.word, length, frame.piece);
 
   char label[16] = "";
-  if (reader->state() == leeloo::reader::State::Paused) {
+  if (frame.state == leeloo::reader::State::Paused) {
     std::snprintf(label, sizeof label, "PAUSA");
-  } else if (status.show_wpm) {
-    std::snprintf(label, sizeof label, "%lu WPM", static_cast<unsigned long>(reader->wpm()));
+  } else if (frame.show_wpm) {
+    std::snprintf(label, sizeof label, "%lu WPM", static_cast<unsigned long>(frame.wpm));
   }
   if (label[0] != '\0') u8g2.drawUTF8(0, 0, label);
 }
@@ -295,6 +312,8 @@ void draw_delete_confirm(const leeloo::ui::Ui& ui) {
 }  // namespace
 
 bool init() {
+  if (g_u8g2_lock == nullptr) g_u8g2_lock = xSemaphoreCreateMutex();
+  if (g_u8g2_lock == nullptr) return false;
   Wire.begin(kSdaPin, kSclPin);
   for (std::uint8_t address : {std::uint8_t{0x3C}, std::uint8_t{0x3D}}) {
     Wire.beginTransmission(address);
@@ -317,23 +336,19 @@ void set_contrast(std::uint8_t register_value) {
 
 std::uint32_t piece_count(const char* word, std::size_t length) {
   if (!g_ready) return 1;
+  U8g2Lock lock;
   return leeloo::view::piece_count(u8g2, word, length);
 }
 
-void render(const leeloo::ui::Ui& ui, const Status& status) {
-  if (!g_ready) return;
-  // The list scroll position belongs to one list; start from the top on a new screen.
-  if (g_list_screen != ui.screen()) {
-    g_list_start = 0;
-    g_list_screen = ui.screen();
-  }
+// Draws one screen into the frame buffer. The caller holds the u8g2 lock.
+static void draw_screen(const leeloo::ui::Ui& ui, const Status& status, const leeloo::app::ReadingFrame& frame) {
   u8g2.clearBuffer();
   u8g2.setFont(u8g2_font_6x10_tf);
   u8g2.setFontPosTop();
   switch (ui.screen()) {
     case Screen::Root: draw_root(ui); break;
     case Screen::Read: draw_read(status, ui); break;
-    case Screen::Reading: draw_reading(status); break;
+    case Screen::Reading: draw_reading(frame); break;
     case Screen::ReadEnd: draw_read_end(ui); break;
     case Screen::Manage: draw_manage(ui); break;
     case Screen::Upload: draw_upload(status); break;
@@ -346,7 +361,20 @@ void render(const leeloo::ui::Ui& ui, const Status& status) {
     case Screen::About: draw_about(status, ui); break;
     case Screen::Message: draw_message(ui); break;
   }
-  u8g2.sendBuffer();
+}
+
+void render(const leeloo::ui::Ui& ui, const Status& status, const leeloo::app::ReadingFrame& frame) {
+  if (!g_ready) return;
+  // The list scroll position belongs to one list; start from the top on a new screen.
+  if (g_list_screen != ui.screen()) {
+    g_list_start = 0;
+    g_list_screen = ui.screen();
+  }
+  {
+    U8g2Lock lock;
+    draw_screen(ui, status, frame);
+  }
+  u8g2.sendBuffer();  // outside the lock: it touches neither the font nor the drawing state
 }
 
 }  // namespace leeloo::display
