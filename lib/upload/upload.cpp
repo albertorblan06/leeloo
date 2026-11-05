@@ -10,7 +10,6 @@ namespace {
 constexpr std::string_view kTitlePrefix = "TITLE: ";
 constexpr std::string_view kAuthorPrefix = "AUTHOR: ";
 constexpr std::string_view kPagesPrefix = "PAGES: ";
-constexpr std::string_view kStartLine = "###START###";
 constexpr std::size_t kMaxPagesDigits = 9;  // keeps the value inside 32 bits
 
 bool starts_with(std::string_view s, std::string_view prefix) {
@@ -142,7 +141,7 @@ Result BookValidator::end_header_line() {
       state_ = State::PagesOrStart;
       return Result::Ok;
     case State::PagesOrStart:
-      if (line == kStartLine) {
+      if (line == kStartMarker) {
         state_ = State::Body;
         return Result::Ok;
       }

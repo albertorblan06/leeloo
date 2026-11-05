@@ -2,10 +2,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 // Pure logic for the Upload Book session (docs/WEB-API.md). No Arduino, no I/O:
 // the HTTP/Wi-Fi/storage adapter in src/ feeds bytes in and acts on the results.
 namespace leeloo::upload {
+
+// Line that ends the header; the book text follows it (docs/ARCHITECTURE.md §5.1).
+inline constexpr std::string_view kStartMarker = "###START###";
 
 // Mirror docs/WEB-API.md §4 and web/src/limits.js. Initial values, not measured.
 constexpr std::size_t kMaxBookBytes = 1048576;
