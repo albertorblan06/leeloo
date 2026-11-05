@@ -52,3 +52,9 @@
 - Added a digital I2C ambient light sensor (Auto/Manual brightness with smoothing and hysteresis) and an I2C haptic driver (cues on WPM step and, optionally, punctuation) to `docs/ARCHITECTURE.md`, the implementation plan, the roadmap, the requirements addendum, README and context.
 - All new parts, I2C addresses, motor type, current budget and pins are explicitly unverified until the Phase 1 hardware gate. Punctuation haptics are optional; their default is decided after a feel test.
 - Documentation only; no code or build changes.
+
+## 2026-11-05 — RSVP algorithm and OLED view promoted to `main`
+
+- `lib/rsvp` (with its 57-test suite) cherry-picked from `dev`. The OLED rendering (hollow focal letter, `helvB18` font, syllable split) now lives in `src/rsvp_view.{h,cpp}` with `begin`, `show_word` and `clear`; WPM and hold are parameters. U8g2 `2.36.18` added to `[env:esp32s3]`.
+- Left out on purpose: the hardcoded phrase, fixed WPM, loop and the smoke-test `main.cpp`; `src/main.cpp` is still the placeholder, so the view is compiled but not called.
+- `pio test -e native` (57) and `pio run -e esp32s3` pass. The view has no hardware checklist on `main` yet and is verified on the board only through `dev`.
