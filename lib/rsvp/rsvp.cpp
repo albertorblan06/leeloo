@@ -227,6 +227,30 @@ constexpr std::size_t kLongWordLetters = 8;
 
 bool is_digit(std::uint32_t cp) { return cp >= '0' && cp <= '9'; }
 
+bool is_opening_mark(std::uint32_t cp) {
+  switch (cp) {
+    case '(': case '[': case '{':
+    case '"': case '\'': case 0x00AB:  // «
+    case 0x201C: case 0x2018:          // “ ’
+    case 0x2014: case 0x2013:          // — –
+    case 0x00BF: case 0x00A1:          // ¿ ¡
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool token_contains_letter_or_digit(const char* text, std::size_t size, std::size_t from) {
+  for (std::size_t i = from; i < size;) {
+    if (text[i] == ' ' || text[i] == '\t' || text[i] == '\n' || text[i] == '\r') break;
+    std::size_t width = 1;
+    const std::uint32_t cp = decode_at(text, size, i, &width);
+    if (is_letter(cp) || is_digit(cp)) return true;
+    i += width;
+  }
+  return false;
+}
+
 // Hold for a punctuation mark that ends a word.
 std::uint32_t mark_hold(std::uint32_t cp) {
   switch (cp) {
@@ -261,19 +285,44 @@ std::uint32_t hold_percent(const char* text, std::size_t size, const WordSpan& s
   if (text == nullptr || span.start > size || span.length > size - span.start) return kNormalHold;
 
   const std::size_t end = span.start + span.length;
-  std::uint32_t trailing = kNormalHold;  // strongest mark after the last letter or digit
+  std::uint32_t trailing = kNormalHold;
+  std::uint32_t run_mark = kNormalHold;
+  bool saw_letter_or_digit = false;
+  bool saw_trailing_mark = false;
   std::size_t letters = 0;
-  for (std::size_t i = span.start; i < end;) {
+
+  for (std::size_t i = span.start; i < size;) {
+    if (text[i] == ' ' || text[i] == '\t' || text[i] == '\n' || text[i] == '\r') break;
+
     std::size_t width = 1;
-    const std::uint32_t cp = decode_at(text, end, i, &width);
+    const std::uint32_t cp = decode_at(text, size, i, &width);
     i += width;
+
     if (is_letter(cp) || is_digit(cp)) {
+      // A later letter/digit invalidates a punctuation run that was not trailing.
+      if (saw_trailing_mark) {
+        run_mark = kNormalHold;
+        saw_trailing_mark = false;
+      }
       trailing = kNormalHold;
       if (is_letter(cp)) ++letters;
-    } else {
-      trailing = std::max(trailing, mark_hold(cp));
+      saw_letter_or_digit = true;
+      continue;
+    }
+
+    if (!saw_letter_or_digit && is_opening_mark(cp) && token_contains_letter_or_digit(text, size, i + width)) {
+      continue;
+    }
+
+    const std::uint32_t mark = mark_hold(cp);
+    if (mark != kNormalHold || !saw_letter_or_digit) {
+      run_mark = std::max(run_mark, mark);
+      saw_trailing_mark = true;
+      trailing = run_mark;
     }
   }
+
+  if (saw_letter_or_digit && !saw_trailing_mark) trailing = kNormalHold;
 
   std::uint32_t hold = trailing;
   if (letters > kLongWordLetters) hold = std::max(hold, kLongWordHold);

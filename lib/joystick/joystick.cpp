@@ -13,8 +13,10 @@ Direction Axis::update(int value) {
     state_ = Direction::Low;
     return Direction::Low;
   }
-  // Inside the exit band the stick counts as centered again.
-  if (delta > -kExitDelta && delta < kExitDelta) state_ = Direction::None;
+  // Inside the exit band the stick counts as centered again. Being exactly on
+  // the boundary should also re-arm the axis, so the center threshold is
+  // inclusive.
+  if (delta >= -kExitDelta && delta <= kExitDelta) state_ = Direction::None;
   return Direction::None;
 }
 
