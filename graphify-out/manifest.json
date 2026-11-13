@@ -114,15 +114,15 @@
     "semantic_hash": ""
   },
   "docs/hardware-checklists/oled-rsvp-smoke.md": {
-    "mtime": 1793793030.9590354,
-    "seen": 1793793047.727823,
-    "ast_hash": "231ffcaa50bb7237741acd250beb1c05",
+    "mtime": 1794586864.5038555,
+    "seen": 1794586876.2735622,
+    "ast_hash": "50b90257568957bfae4a7ca4a45769a1",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/buttons-input.md": {
-    "mtime": 1793874142.4513624,
-    "seen": 1793875069.300676,
-    "ast_hash": "0dc295681c08d66d9f7b201c405da0b2",
+    "mtime": 1794590176.654018,
+    "seen": 1794590195.4697769,
+    "ast_hash": "e20347157550b4aac92c7c3eaf2fbd55",
     "semantic_hash": ""
   },
   "lib/buttons/buttons.cpp": {
@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "docs/hardware-checklists/joystick-input.md": {
-    "mtime": 1793875400.5984879,
-    "seen": 1793875401.2625768,
-    "ast_hash": "e4d544c912063e032c108ea1b79b5ef1",
+    "mtime": 1794586865.3335161,
+    "seen": 1794586876.273561,
+    "ast_hash": "fdc7f905029eaa6c5425b885a7c60c94",
     "semantic_hash": ""
   },
   "web/package.json": {
@@ -366,9 +366,9 @@
     "semantic_hash": ""
   },
   "src/display_ui.cpp": {
-    "mtime": 1793903460.8055682,
-    "seen": 1793903671.3504262,
-    "ast_hash": "d4ace330fbb2c27fbb1c894792bb074b",
+    "mtime": 1794586862.0234792,
+    "seen": 1794586876.273513,
+    "ast_hash": "bfe64a086ba405dcb01b4ba32c5cf600",
     "semantic_hash": ""
   },
   "src/display_ui.h": {
@@ -432,9 +432,9 @@
     "semantic_hash": ""
   },
   "docs/hardware-checklists/menu.md": {
-    "mtime": 1793900817.696889,
-    "seen": 1793900829.662404,
-    "ast_hash": "af32894bed2d8bc4723126ed8e132c94",
+    "mtime": 1794586864.976066,
+    "seen": 1794586876.2735622,
+    "ast_hash": "7477ae9183e43c8c75c13d030666f3c1",
     "semantic_hash": ""
   },
   "lib/reader/reader.cpp": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "src/pins.h": {
-    "mtime": 1793903517.1746879,
-    "seen": 1793903671.3504279,
-    "ast_hash": "c152cdadee6353f912d06e558e6239fa",
+    "mtime": 1794590173.6294503,
+    "seen": 1794590195.469731,
+    "ast_hash": "6c938e83563fecebb299ebdd4a52cc79",
     "semantic_hash": ""
   },
   "src/tasks.cpp": {
