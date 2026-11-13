@@ -24,7 +24,7 @@ using leeloo::settings::WifiMode;
 using leeloo::ui::Screen;
 
 constexpr int kSdaPin = 8;
-constexpr int kSclPin = 9;
+constexpr int kSclPin = 10;
 constexpr const char* kFirmwareVersion = "0.1.0-dev";
 
 // Grid from DESIGN.md §3.1: title y0-9, rule y11, four rows at 14/26/38/50.

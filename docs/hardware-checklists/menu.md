@@ -30,7 +30,7 @@ Status: **written, not yet run on hardware.** Spec: `docs/DEVICE-MENU.md`. Choic
 ## Known limits to watch
 - [ ] SELECT long during an upload stops the AP from the menu task. `httpd_stop` may wait for the transfer in flight, so the screen can freeze for a moment. Measure how long: ______ s.
 - [ ] After a flash, `/books` is created at boot. Serial must not print `/littlefs/books does not exist`.
-- [ ] With the OLED disconnected the firmware still boots and prints `No OLED at 0x3C/0x3D`. Wiring: SDA GPIO8, SCL GPIO9, VCC 3V3.
+- [ ] With the OLED disconnected the firmware still boots and prints `No OLED at 0x3C/0x3D`. Wiring: SDA GPIO8, SCL GPIO10, VCC 3V3.
 
 ## Biblioteca and Wi-Fi
 - [ ] Subir with Wi-Fi Apagado shows `Wi-Fi desactivado`, and no AP appears.

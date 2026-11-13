@@ -11,7 +11,7 @@ Firmware: `src/main.cpp` on branch `dev`. Supersedes `buttons-input.md` for the 
 | VRx | GPIO5 (ADC1) | horizontal: LEFT / RIGHT |
 | SW | GPIO7 | push: SELECT (to GND, internal pull-up) |
 
-OLED unchanged: VCC 3V3, GND, SDA GPIO8, SCL GPIO9. ADC1 is used because ADC2 stops working while Wi-Fi is on.
+OLED unchanged: VCC 3V3, GND, SDA GPIO8, SCL GPIO10. ADC1 is used because ADC2 stops working while Wi-Fi is on.
 
 ## Behavior
 - Center is measured at boot (average of 16 samples): **do not touch the stick while the board resets.**

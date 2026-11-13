@@ -5,8 +5,8 @@ Status: **proposed wiring, nothing wired or flashed yet.** Temporary substitute 
 ## Mapping
 | Button | Action | GPIO | Notes |
 |---|---|---|---|
-| UP | previous menu item (later: WPM +25) | GPIO4 | RTC-capable, deep-sleep wake possible |
-| DOWN | next menu item (later: WPM -25) | GPIO5 | RTC-capable |
+| UP | previous menu item (later: WPM +25) | GPIO5 | RTC-capable, deep-sleep wake possible |
+| DOWN | next menu item (later: WPM -25) | GPIO4 | RTC-capable |
 | SELECT | confirm; long press = back / sleep | GPIO6 | RTC-capable, wake source |
 
 GPIO4-6 avoid: strapping pins (0, 3, 45, 46), octal PSRAM/flash (26-37 on N16R8), USB (19, 20), UART0 (43, 44), I2C (8, 9) and the onboard RGB LED (48).
@@ -16,9 +16,9 @@ Each button is a 4-pin tactile switch (6x6 mm). Pins on the same side are shorte
 
 | From | To |
 |---|---|
-| UP pin 1 | GPIO4 |
+| UP pin 1 | GPIO5 |
 | UP pin 3 | GND |
-| DOWN pin 1 | GPIO5 |
+| DOWN pin 1 | GPIO4 |
 | DOWN pin 3 | GND |
 | SELECT pin 1 | GPIO6 |
 | SELECT pin 3 | GND |
@@ -29,7 +29,7 @@ Each button is a 4-pin tactile switch (6x6 mm). Pins on the same side are shorte
 | VCC | 3V3 |
 | GND | GND |
 | SDA | GPIO8 |
-| SCL | GPIO9 |
+| SCL | GPIO10 |
 
 - The pin order printed on the module varies (often GND, VCC, SCL, SDA): read the silkscreen, do not assume.
 - Most modules already have I2C pull-ups on board; add 4.7 kΩ to 3V3 on SDA and SCL only if the scan finds nothing.
@@ -38,11 +38,11 @@ Each button is a 4-pin tactile switch (6x6 mm). Pins on the same side are shorte
 ### Full pin summary
 | GPIO | Use |
 |---|---|
-| 4 | UP button (to GND) |
-| 5 | DOWN button (to GND) |
+| 4 | DOWN button (to GND) |
+| 5 | UP button (to GND) |
 | 6 | SELECT button (to GND) |
 | 8 | OLED SDA |
-| 9 | OLED SCL |
+| 10 | OLED SCL |
 | 3V3 | OLED VCC |
 | GND | OLED GND + 3 button commons |
 

@@ -4,7 +4,7 @@ Firmware: `src/main.cpp` on branch `dev`. Shows a hardcoded text (a power-distri
 Record the result of each run below (date, board, module, outcome).
 
 ## Setup
-- [ ] OLED `VCC` to 3V3 (check the module's voltage range), `GND` to GND, `SDA` to GPIO8, `SCL` to GPIO9.
+- [ ] OLED `VCC` to 3V3 (check the module's voltage range), `GND` to GND, `SDA` to GPIO8, `SCL` to GPIO10.
 - [ ] `pio run -e esp32s3 -t upload`, then `pio device monitor` (115200 baud, UART port of the DevKitC; USB-CDC is off).
 
 ## Checks
