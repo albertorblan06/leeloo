@@ -25,9 +25,10 @@ D = dict(
     # OLED 1.3" module (measured: underside of PCB 12 mm above the perfboard; visible glass 34.5 x 18.2)
     # oled_z 10.6 = 12.0 - 1.4 (user: pins engaged too little at 12.0); fheader_h 8.1 is derived so the 2.5 mm
     # male header body sits on the socket (8.1 + 2.5 = 10.6), it was not measured.
-    fheader_h=8.1, fheader_y=32.7, mheader_h=2.5, oled_z=10.6,
-    # oled_y = 17.3 (first estimate from the photo) + 2.0: the whole module, its bosses and the window move up together
-    oled_pcb_w=35.5, oled_pcb_h=33.5, oled_pcb_t=1.2, oled_y=19.3,
+    fheader_h=8.1, fheader_y=30.2,                            # = oled_y + 15.4 so the module pins sit over the socket
+     mheader_h=2.5, oled_z=10.6,
+    # oled_y: whole module, bosses and window move together. 17.3 (photo) -> 19.3 (+2.0) -> 14.8 (-4.5, user, after test fit)
+    oled_pcb_w=35.5, oled_pcb_h=33.5, oled_pcb_t=1.2, oled_y=14.8,
     oled_hole_dx=31.0, oled_hole_dy=28.5, oled_hole_d=3.0,
     glass_w=35.0, glass_h=23.6, glass_t=1.4, glass_top_from_pcb_top=4.75,
     active_w=34.5, active_h=18.2, active_top_from_glass_top=0.6,
@@ -48,6 +49,7 @@ D = dict(
     front_fillet=0.8,                         # outer edge of the front face (no sharp edge on the bed side)
     oled_boss_d=4.2, oled_pilot_d=2.0, oled_pilot_depth=3.0,   # OLED bosses, M2.5 x 4 screws
     slot_w=12.0, knob_d=18.0,
+    rocker_top_trim=2.3,                      # rocker/slot top end pulled down so it clears the lowered OLED PCB (edge at y -1.95)
     # buttons
     slide_clr=0.15,                           # per side, sliding fit on an FDM printer
     pad_up=2.5,                               # how far the pads stand proud of the plate (console style)
@@ -243,10 +245,11 @@ def build():
     wy0 = k['oled_y'] + abot - m + k['win_dy']; wy1 = k['oled_y'] + atop + m + k['win_dy']
     L.addTwoPointRectangle(P(-wx / 10, wy0 / 10, 0), P(wx / 10, wy1 / 10, 0))   # plain window: lit area only
     sx = k['sw12_pos'][0][0]; ya = k['sw12_pos'][1][1]; yb = k['sw12_pos'][0][1]   # upper / lower switch
+    yt = ya - k['rocker_top_trim']                # centre of the slot's upper end arc (legs stay on the switches)
     r = k['slot_w'] / 2
-    L.addByTwoPoints(P((sx - r) / 10, yb / 10, 0), P((sx - r) / 10, ya / 10, 0))
-    L.addByTwoPoints(P((sx + r) / 10, yb / 10, 0), P((sx + r) / 10, ya / 10, 0))
-    A.addByThreePoints(P((sx + r) / 10, ya / 10, 0), P(sx / 10, (ya + r) / 10, 0), P((sx - r) / 10, ya / 10, 0))
+    L.addByTwoPoints(P((sx - r) / 10, yb / 10, 0), P((sx - r) / 10, yt / 10, 0))
+    L.addByTwoPoints(P((sx + r) / 10, yb / 10, 0), P((sx + r) / 10, yt / 10, 0))
+    A.addByThreePoints(P((sx + r) / 10, yt / 10, 0), P(sx / 10, (yt + r) / 10, 0), P((sx - r) / 10, yt / 10, 0))
     A.addByThreePoints(P((sx - r) / 10, yb / 10, 0), P(sx / 10, (yb - r) / 10, 0), P((sx + r) / 10, yb / 10, 0))
     sk.sketchCurves.sketchCircles.addByCenterRadius(P(x6 / 10, y6 / 10, 0), k['knob_d'] / 20)
     ext(c, sk, 2.0 + k['plate'], CUT, body)
@@ -264,7 +267,7 @@ def build():
     yc = (ya + yb) / 2
     rx = k['flange_w'] / 2 + k['slide_clr']
     y_lo = yb - r
-    y_hi = -2.0   # rails stop short of the OLED PCB (its lower edge is at y 0.55)
+    y_hi = yt + r - k['slide_clr']   # rails end with the flange, short of the OLED PCB
     rail_z0 = z_plate - k['rail_h']
     for s in (-1, 1):
         x0 = sx + s * rx
@@ -285,7 +288,7 @@ def build():
     o = new_comp(root, 'Rocker'); c = o.component; occs['Rocker'] = o
     fz0 = z_plate - k['rib_h'] - k['flange_t']          # flange sits on the fulcrum crest
     fz1 = fz0 + k['flange_t']
-    plen_lo = yb - (r - k['slide_clr']); plen_hi = ya + (r - k['slide_clr'])
+    plen_lo = yb - (r - k['slide_clr']); plen_hi = yt + (r - k['slide_clr'])
     rk = box(c, 'Rocker', sx - k['flange_w'] / 2, plen_lo, sx + k['flange_w'] / 2, plen_hi, fz0, fz1)
     ce = adsk.core.ObjectCollection.create()
     for e in rk.edges:
@@ -297,9 +300,9 @@ def build():
             ce.add(e)
     chamfer(c, ce, k['flange_t'] - 0.1)
     pr = r - k['slide_clr']
-    ext(c, stadium_sketch(c, 'necks', sx, ya, yb, pr, fz1), z_plate + k['plate'] - fz1, JOIN, rk)
+    ext(c, stadium_sketch(c, 'necks', sx, yt, yb, pr, fz1), z_plate + k['plate'] - fz1, JOIN, rk)
     ext(c, rect_sketch(c, 'neck gap', sx - 9, yc - k['gap_half'], sx + 9, yc + k['gap_half'], fz1), z_plate + k['plate'] - fz1, CUT, rk)
-    ext(c, stadium_sketch(c, 'pad', sx, ya, yb, pr, z_top), k['pad_up'], JOIN, rk)
+    ext(c, stadium_sketch(c, 'pad', sx, yt, yb, pr, z_top), k['pad_up'], JOIN, rk)
     fillet(c, edges_at_z(rk, z_top + k['pad_up']), k['pad_fillet_rocker'])
     leg_z0 = k['sw12_total']
     ext(c, circles_sketch(c, 'legs', [(sx, ya), (sx, yb)], k['leg_d'], leg_z0), fz0 - leg_z0, JOIN, rk)

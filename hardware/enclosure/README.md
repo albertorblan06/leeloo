@@ -30,7 +30,7 @@ Print the two caps at 100 % scale; if they bind, raise `slide_clr` in `D` (0.15 
 - 6×6 switch Y position (−14.73 mm from the board centre) comes from the original sketch.
 - Glass 35.0 × 23.6 mm is from the photos. The OLED height (10.6 mm) is the original 12.0 mm minus the 1.4 mm the user found extra.
 - Female header height 8.1 mm is derived (10.6 − 2.5 mm male body), not measured.
-- **OLED position is a bet:** the user asked for the screen 1.5–3 mm higher than the first print; the photos could not confirm it (parallax), so the **whole OLED moved 2.0 mm up** (`oled_y` 17.3 → 19.3): its mounting holes/bosses (y 5.05 and 33.55, x ±15.5) and the window (plain rectangle, lit area 34.5 × 18.2, y 12.5–30.7) move together. The module's top edge now overhangs the perfboard's top edge by about 1 mm, and the female header in the model (y 32.7) was not moved, so measure where the header really is. If it is still off, adjust `oled_y`.
+- **OLED position (`oled_y` = 14.8):** history 17.3 (photo estimate) → 19.3 (+2.0) → **14.8 (−4.5, user, after a test fit)**. The whole module moves together: mounting holes/bosses (x ±15.5, y 0.55 and 29.05), window (plain rectangle, lit area 34.5 × 18.2, y 8.0–26.2) and the female header in the model (y 30.2, so the pins sit over the socket). The module's lower PCB edge (y −1.95) now reaches over the top of the rocker, so the rocker and its slot are 2.3 mm shorter at the top end (`rocker_top_trim`); the legs still sit on the switches. If the position is still off, adjust `oled_y`.
 - The front plate leaves 0.4 mm over the OLED glass.
 
 - Cavity is 51.2 mm wide (0.6 mm per side, `side_clr`) after the 50 mm perfboard fitted too tightly at 0.3 mm. Shell size 55.2 × 83.2 × 16.8 mm.

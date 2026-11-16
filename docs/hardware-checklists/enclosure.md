@@ -9,7 +9,7 @@ Parts: `hardware/enclosure/front_shell.stl`, `rocker.stl`, `select_cap.stl`. Scr
 ## Checks
 - [ ] OLED hole spacing measured with a caliper: ____ × ____ mm (model: 31.0 × 28.5). Bosses line up with the holes.
 - [ ] OLED screws (M2.5 × 4) bite into the pilot holes and do not pierce the plate; OLED does not move when pushed.
-- [ ] OLED visible area fully shows through the window; no pixel is cut off at the top or bottom (the OLED and its bosses were moved 2.0 mm up: if still off, note by how much: ____ mm).
+- [ ] OLED visible area fully shows through the window; no pixel is cut off at the top or bottom (the OLED and its bosses sit at oled_y = 14.8, 4.5 mm lower than the 19.3 build: if still off, note by how much: ____ mm).
 - [ ] OLED header pins fully engage in the socket with the OLED screwed down (OLED underside at 10.6 mm).
 - [ ] Perfboard corner holes line up with the bosses; M2 screws bite into the Ø1.6 pilot holes (back half pending).
 - [ ] Perfboard (50 mm) drops into the 51.2 mm cavity without force; wires at the top/bottom edges are not squashed.
