@@ -616,5 +616,23 @@
     "seen": 1793903671.3504362,
     "ast_hash": "f78dfcad37f7a231274a07b902a70a05",
     "semantic_hash": ""
+  },
+  "hardware/enclosure/build_enclosure.py": {
+    "mtime": 1794749363.1337152,
+    "seen": 1794749404.380126,
+    "ast_hash": "7c47b02aeacb5bf909dfab5192966e5c",
+    "semantic_hash": ""
+  },
+  "docs/hardware-checklists/enclosure.md": {
+    "mtime": 1794749402.6571,
+    "seen": 1794749404.380214,
+    "ast_hash": "76596b2be87e76efd850ebfa8b20288e",
+    "semantic_hash": ""
+  },
+  "hardware/enclosure/README.md": {
+    "mtime": 1794749402.6568346,
+    "seen": 1794749404.380219,
+    "ast_hash": "c5e7ee9af6eddd1e644288ccc0b6e34b",
+    "semantic_hash": ""
   }
 }
