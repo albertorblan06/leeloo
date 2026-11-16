@@ -107,3 +107,9 @@
 - Root cause (by reading, not reproduced on hardware): `switch_task` sampled the pin once after a `pdMS_TO_TICKS(20)` wait and then stopped waiting. The timeout can fire at 19 ms of real time, so `Debouncer::update` answered `None`, nothing woke the task again, and the whole press was lost.
 - Fix: `Debouncer::pending()` (change waiting for confirmation); the task keeps sampling while it is true. Regression tests `is_pending_until_debounce_window_elapses` and `is_not_pending_after_rejected_bounce` (the first failed to compile before the fix). `pio test -e native` 79 passed; flashed on the board.
 - Still to confirm by the user: 30 quick SW presses give S = 30 (new line in `docs/hardware-checklists/joystick-input.md`).
+
+## 2026-11-13 — Fixes to joystick re-arm and RSVP pause logic
+
+- Corrected the joystick hysteresis re-arm behavior so the axis re-arms at the exact exit band boundary instead of requiring a strict center crossing.
+- Tightened the RSVP hold logic to ignore opening punctuation that is not a trailing mark, preserve sentence/paragraph pause precedence, and keep punctuation-only tokens classified correctly.
+- Validated the updated logic with a focused host-side C++ harness because PlatformIO is not installed in this environment.
