@@ -1,7 +1,7 @@
-# Graph Report - leeloo  (2026-11-15)
+# Graph Report - leeloo  (2026-11-16)
 
 ## Corpus Check
-- 104 files · ~51,836 words
+- 104 files · ~51,895 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 8 file(s) not represented in the graph (top: .stl 3, (none) 2, .csv 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `69ac799e`
+- Built from commit: `a442e1e1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -80,9 +80,9 @@
 - UiService::UiService
 - Net
 - Log
+- INet
 - Snapshot
 - Button
-- INet
 - .frame_with
 - IMutex
 - rtos_freertos.cpp
