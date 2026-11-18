@@ -85,7 +85,7 @@ The display is 1-bit. Anything that looks like a "color" on the web becomes blac
 
 - Screen: 128 x 64 px. Side margin 2 px. Usable width 124 px.
 - Status bar: y 0–9, followed by a 1 px rule at y 11.
-- List area: y 13–63. Holds 4 rows of 12 px (y 14, 26, 38, 50) plus a scroll gutter 3 px wide at x 124–127 when the list is longer than 4 items.
+- List area: y 13–63. Holds 4 rows of 12 px (y 14, 26, 38, 50); lists with a fixed back row scroll through the three rows above it without a scroll indicator.
 - Font: a bitmap font with the Spanish glyph set (á é í ó ú ñ ü Ñ ¿ ¡). Use a 6 px wide, 10 px tall face for body text and labels. Confirm the chosen u8g2 font contains every glyph in §7 before use; if it does not, fall back to a font that does and record it here.
 
 ### 3.2 Hierarchy
@@ -111,19 +111,17 @@ The focused row is the OLED equivalent of Loudop's `--focus`. Do not draw an ext
 
 ### 3.4 Motion
 
-No animation. The screen changes instantly. Animation costs I2C time that belongs to RSVP timing (ARCHITECTURE §4.2, I2C bus owner).
+Use a brief horizontal slide between menu and submenu screens: forward navigation enters from the right and moves left; Back enters from the left and moves right. Do not animate entry to or exit from RSVP reading, or its per-word updates, to preserve reading timing.
 
 ## 4. Main menu
 
-Use a text-only refined minimal list for the current three-button firmware. Labels stay visible and the focused row is inverted.
+Use a text-only refined minimal list for the current three-button firmware. Omit the title and divider so the four destinations can use the full screen; space the rows evenly and invert the focused row.
 
 ```
-LEELOO                           <- title (y 0-9)
------------------------------    <- rule (y 11)
- Leer                            <- focused (inverted)
- Biblioteca
- Ajustes
- Info
+ Leer                            <- focused (y 7)
+ Biblioteca                      <- y 22
+ Ajustes                         <- y 37
+ Info                            <- y 52
 ```
 
 - Keep all four destinations visible on the 128×64 display. Do not draw pictograms beside the main-menu labels.
@@ -150,7 +148,7 @@ Settings mapping from Loudop's Preferencias screen:
 | Modo: Sistema / Claro / Oscuro | Not ported: the device is always dark. Nearest setting is Brillo: `< Auto >` / `< Manual >` (ARCHITECTURE §3.2) |
 | Avisos: Sí / No per item | Háptico: `Sí` / `No` |
 | Sub-screens with chevron | Submenu with `>` |
-| Reading speed | Paso de lectura: 5/10/25/50/100 PPM; last-used global speed, 100–500 PPM |
+| Reading speed | Velocidad de lectura: 5/10/25/50/100 PPM step; last-used global speed, 100–500 PPM |
 
 ## 6. Input conventions
 

@@ -9,7 +9,7 @@ Status: **written, not yet run on hardware.** Spec: `docs/DEVICE-MENU.md`. Choic
 
 ## Boot
 - [ ] A centered LEELOO wordmark and open-book icon show briefly at boot, then the main menu appears.
-- [ ] The text-only main menu shows Leer, Biblioteca, Ajustes, Info. The first row is focused; no pictograms are drawn.
+- [ ] The main menu shows Leer, Biblioteca, Ajustes, Info on evenly spaced rows with no title, divider, or pictograms. The first row is focused.
 - [ ] Serial prints no `LittleFS no montó`. If it does, the menu shows `Almacenamiento no disponible` and no book is touched.
 - [ ] If the saved Wi-Fi mode is `Encendido`, the AP `Leeloo` appears after boot.
 
@@ -17,6 +17,9 @@ Status: **written, not yet run on hardware.** Spec: `docs/DEVICE-MENU.md`. Choic
 - [ ] Wiring as in `buttons-input.md`: UP GPIO4, DOWN GPIO5, SELECT GPIO6, each to GND. Serial prints ARRIBA, ABAJO or SELECT on each press.
 - [ ] UP and DOWN move the cursor and wrap at both ends.
 - [ ] SELECT short opens each screen; SELECT long goes back one level from each sub-screen.
+- [ ] Forward menu navigation slides left from the right; Back slides right from the left. RSVP entry/exit and word updates remain unanimated.
+- [ ] Lists have no scroll bar; the focused row stays visible as long lists scroll.
+- [ ] Back actions display `< Atrás`.
 - [ ] No screen is drawn with a color cue; the focus is the inverted bar only.
 - [ ] All Spanish strings show accents correctly: á é í ó ú ñ ü ¿ ¡. If the `...` ellipsis or any accent is missing, record it in DEVICE-MENU §6.
 
@@ -26,7 +29,7 @@ Status: **written, not yet run on hardware.** Spec: `docs/DEVICE-MENU.md`. Choic
 - [ ] Nivel changes in 5 % steps between 10 % and 100 %, and the panel gets dimmer and brighter visibly.
 - [ ] CONTRASTE changes in 5 % steps and the panel responds. Record the visible range: ______.
 - [ ] WI-FI cycles Apagado → Automático → Encendido and back.
-- [ ] PASO DE LECTURA offers 5, 10, 25, 50 and 100 PPM increments, with 25 selected by default.
+- [ ] VELOCIDAD DE LECTURA offers 5, 10, 25, 50 and 100 PPM steps, labeled `Paso`, with 25 selected by default.
 - [ ] Holding UP/DOWN in numeric edit repeats after 400 ms and every 150 ms; menu navigation and categorical values do not repeat.
 - [ ] Leaving or finishing a book saves its last global reading speed; pause does not save it.
 - [ ] Reset the board after changing each value: the same value is shown after boot.

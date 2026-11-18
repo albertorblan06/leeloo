@@ -10,7 +10,7 @@ std::size_t Ui::item_count() const {
     case Screen::Manage: return 3;
     case Screen::DeleteConfirm: return 2;  // Cancelar, Borrar
     case Screen::ReadEnd: return 2;        // Releer, Volver al menú
-    case Screen::Settings: return 5;       // Brillo, Contraste, Wi-Fi, Paso de lectura, Atrás
+    case Screen::Settings: return 5;       // Brillo, Contraste, Wi-Fi, Velocidad de lectura, Atrás
     case Screen::Brightness:
       return (settings_.brightness_mode == settings::BrightnessMode::Manual ? 2 : 1) + 1;
     case Screen::Contrast:

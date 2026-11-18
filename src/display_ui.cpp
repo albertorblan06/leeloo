@@ -26,13 +26,20 @@ using leeloo::ui::Screen;
 constexpr int kSdaPin = 8;
 constexpr int kSclPin = 10;
 constexpr const char* kFirmwareVersion = "0.1.0-dev";
+constexpr std::size_t kFrameWidth = 128;
+constexpr std::size_t kFrameHeight = 64;
+constexpr std::size_t kFramePageCount = kFrameHeight / 8;
+constexpr std::size_t kFrameBufferSize = kFrameWidth * kFramePageCount;
+constexpr std::size_t kSlideFrameCount = 8;
+constexpr std::size_t kSlideStep = kFrameWidth / kSlideFrameCount;
 
-// Grid from DESIGN.md §3.1: title y0-9, rule y11, four rows at 14/26/38/50.
+// Titled screens use rows below the title; the root menu has its own full-height grid.
 constexpr int kRowY[4] = {14, 26, 38, 50};
-constexpr int kRowWidth = 124;  // x 124-127 is the scroll gutter
+constexpr int kRootRowY[4] = {7, 22, 37, 52};
+constexpr int kRowWidth = 128;
 constexpr std::size_t kVisibleRows = 4;
 constexpr std::size_t kListRows = kVisibleRows - 1;
-constexpr std::size_t kTitleChars = 19;  // 6 px per character, 124 px usable
+constexpr std::size_t kTitleChars = 20;  // 6 px per character, within the row margins
 
 // U8g2 wants the 8-bit form of the address; the SH1106 is the likely controller.
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
@@ -56,6 +63,10 @@ class U8g2Lock {
 // First visible list row, kept between frames so the list scrolls smoothly.
 std::size_t g_list_start = 0;
 Screen g_list_screen = Screen::Root;
+std::uint8_t g_previous_frame[kFrameBufferSize]{};
+std::uint8_t g_next_frame[kFrameBufferSize]{};
+Screen g_previous_screen = Screen::Root;
+bool g_have_previous_frame = false;
 
 void draw_title(const char* text) {
   u8g2.drawUTF8(0, 0, text);
@@ -85,24 +96,8 @@ void draw_back_row(int slot, bool focused) {
     u8g2.drawBox(0, y - 1, kRowWidth, 12);
     u8g2.setDrawColor(0);
   }
-  u8g2.drawHLine(4, y + 5, 7);
-  u8g2.drawLine(4, y + 5, 8, y + 1);
-  u8g2.drawLine(4, y + 5, 8, y + 9);
-  u8g2.drawUTF8(14, y, "Atrás");
+  u8g2.drawUTF8(3, y, "< Atrás");
   u8g2.setDrawColor(1);
-}
-
-// Thin track on the right edge; the thumb shows where the window sits in the list.
-void draw_gutter(std::size_t count, std::size_t start, std::size_t visible_rows) {
-  if (count <= visible_rows) return;
-  constexpr int kTop = 13;
-  constexpr int kHeight = 36;
-  int thumb = static_cast<int>(kHeight * visible_rows / count);
-  if (thumb < 6) thumb = 6;
-  const int thumb_top =
-      kTop + (kHeight - thumb) * static_cast<int>(start) / static_cast<int>(count - visible_rows);
-  u8g2.drawFrame(124, kTop, 3, kHeight);
-  u8g2.drawBox(124, thumb_top, 3, thumb);
 }
 
 // Labels for the list rows that are on screen, scrolled to keep the cursor visible.
@@ -122,7 +117,6 @@ void draw_list(const char* title, std::size_t count, std::size_t cursor, const c
     draw_row(static_cast<int>(slot), label(i), value, i == cursor);
   }
   draw_back_row(static_cast<int>(kVisibleRows - 1), back_focused);
-  draw_gutter(count, g_list_start, kListRows);
 }
 
 const char* wifi_label(WifiMode mode) {
@@ -315,9 +309,8 @@ void draw_wifi_setting(const leeloo::ui::Ui& ui) {
 
 void draw_root(const leeloo::ui::Ui& ui) {
   static const char* const kItems[] = {"Leer", "Biblioteca", "Ajustes", "Info"};
-  draw_title("LEELOO");
   for (int slot = 0; slot < 4; ++slot) {
-    const int y = kRowY[slot];
+    const int y = kRootRowY[slot];
     if (static_cast<std::size_t>(slot) == ui.cursor()) {
       u8g2.drawBox(0, y - 1, kRowWidth, 12);
       u8g2.setDrawColor(0);
@@ -336,7 +329,7 @@ void draw_manage(const leeloo::ui::Ui& ui) {
 }
 
 void draw_settings(const leeloo::ui::Ui& ui) {
-  static const char* const kItems[] = {"Brillo", "Contraste", "Wi-Fi", "Paso lectura"};
+  static const char* const kItems[] = {"Brillo", "Contraste", "Wi-Fi", "Velocidad lectura"};
   draw_title("AJUSTES");
   const std::size_t list_cursor = ui.cursor() == 4 ? 3 : ui.cursor();
   g_list_start = leeloo::text::scroll_start(g_list_start, list_cursor, 4, kListRows);
@@ -345,16 +338,15 @@ void draw_settings(const leeloo::ui::Ui& ui) {
     draw_row(static_cast<int>(slot), kItems[i], ">", i == ui.cursor());
   }
   draw_back_row(3, ui.cursor() == 4);
-  draw_gutter(4, g_list_start, kListRows);
 }
 
 void draw_speed_step(const leeloo::ui::Ui& ui) {
-  draw_title("PASO DE LECTURA");
+  draw_title("VELOCIDAD DE LECTURA");
   char text[16];
   std::snprintf(text, sizeof text, "%u PPM", static_cast<unsigned>(ui.settings().reading_step_ppm));
   char value[24];
   format_value(value, sizeof value, text, ui.editing());
-  draw_row(0, "Incremento", value, ui.cursor() == 0);
+  draw_row(0, "Paso", value, ui.cursor() == 0);
   draw_back_row(3, ui.cursor() == 1);
 }
 
@@ -445,6 +437,52 @@ static void draw_screen(const leeloo::ui::Ui& ui, const Status& status, const le
   }
 }
 
+bool is_back_transition(Screen from, Screen to) {
+  switch (from) {
+    case Screen::Read:
+    case Screen::Manage:
+    case Screen::Settings:
+    case Screen::About:
+      return to == Screen::Root;
+    case Screen::Upload:
+      return to == Screen::Manage;
+    case Screen::DeleteList:
+      return to == Screen::Manage;
+    case Screen::DeleteConfirm:
+      return to == Screen::DeleteList;
+    case Screen::Brightness:
+    case Screen::Contrast:
+    case Screen::Wifi:
+    case Screen::SpeedStep:
+      return to == Screen::Settings;
+    case Screen::Message:
+      return to == Screen::Read || to == Screen::Manage || to == Screen::DeleteList;
+    case Screen::ReadEnd:
+      return to == Screen::Read;
+    default:
+      return false;
+  }
+}
+
+void compose_slide_frame(std::size_t offset, bool backwards) {
+  std::uint8_t* buffer = u8g2.getBufferPtr();
+  for (std::size_t page = 0; page < kFramePageCount; ++page) {
+    const std::size_t page_offset = page * kFrameWidth;
+    for (std::size_t x = 0; x < kFrameWidth; ++x) {
+      if (backwards) {
+        buffer[page_offset + x] =
+            x >= offset ? g_previous_frame[page_offset + x - offset]
+                        : g_next_frame[page_offset + x + kFrameWidth - offset];
+      } else {
+        const std::size_t source_x = x + offset;
+        buffer[page_offset + x] = source_x < kFrameWidth
+                                      ? g_previous_frame[page_offset + source_x]
+                                      : g_next_frame[page_offset + source_x - kFrameWidth];
+      }
+    }
+  }
+}
+
 void render(const leeloo::ui::Ui& ui, const Status& status, const leeloo::app::ReadingFrame& frame) {
   if (!g_ready) return;
   // The list scroll position belongs to one list; start from the top on a new screen.
@@ -455,8 +493,28 @@ void render(const leeloo::ui::Ui& ui, const Status& status, const leeloo::app::R
   {
     U8g2Lock lock;
     draw_screen(ui, status, frame);
+    std::memcpy(g_next_frame, u8g2.getBufferPtr(), sizeof g_next_frame);
   }
-  u8g2.sendBuffer();  // outside the lock: it touches neither the font nor the drawing state
+  const bool animate = g_have_previous_frame && ui.screen() != g_previous_screen &&
+                       ui.screen() != Screen::Reading && g_previous_screen != Screen::Reading;
+  if (animate) {
+    const bool backwards = is_back_transition(g_previous_screen, ui.screen());
+    for (std::size_t step = 1; step <= kSlideFrameCount; ++step) {
+      {
+        U8g2Lock lock;
+        compose_slide_frame(step * kSlideStep, backwards);
+      }
+      u8g2.sendBuffer();
+    }
+  } else {
+    u8g2.sendBuffer();
+  }
+  {
+    U8g2Lock lock;
+    std::memcpy(g_previous_frame, g_next_frame, sizeof g_previous_frame);
+  }
+  g_previous_screen = ui.screen();
+  g_have_previous_frame = true;
 }
 
 }  // namespace leeloo::display

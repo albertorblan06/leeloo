@@ -473,7 +473,7 @@ void test_wifi_setting_cycles_through_three_modes() {
 
 // --- three-button editing: SELECT toggles edit mode, UP/DOWN adjust ---
 
-// Ajustes > the given row (0 Brillo, 1 Contraste, 2 Wi-Fi, 3 Paso de lectura).
+// Ajustes > the given row (0 Brillo, 1 Contraste, 2 Wi-Fi, 3 Velocidad de lectura).
 void open_setting(Ui& u, std::size_t row) {
   open_root_item(u, 2);
   open_root_item(u, row);
