@@ -12,6 +12,8 @@ void test_defaults_match_device_menu_spec() {
   TEST_ASSERT_EQUAL(BrightnessMode::Manual, s.brightness_mode);
   TEST_ASSERT_EQUAL_UINT8(100, s.brightness_percent);
   TEST_ASSERT_EQUAL_UINT8(100, s.contrast_percent);
+  TEST_ASSERT_EQUAL_UINT16(300, s.last_reading_wpm);
+  TEST_ASSERT_EQUAL_UINT16(25, s.reading_step_ppm);
   TEST_ASSERT_EQUAL(WifiMode::Auto, s.wifi);
 }
 
@@ -33,6 +35,42 @@ void test_step_clamps_at_maximum_hundred_percent() {
 void test_step_ignores_values_outside_range() {
   TEST_ASSERT_EQUAL_UINT8(10, step_percent(0, +1));
   TEST_ASSERT_EQUAL_UINT8(100, step_percent(255, -1));
+}
+
+void test_reading_speed_uses_the_selected_step_and_clamps_to_range() {
+  TEST_ASSERT_EQUAL_UINT16(305, adjust_reading_wpm(300, +1, 5));
+  TEST_ASSERT_EQUAL_UINT16(290, adjust_reading_wpm(300, -1, 10));
+  TEST_ASSERT_EQUAL_UINT16(100, adjust_reading_wpm(100, -1, 50));
+  TEST_ASSERT_EQUAL_UINT16(500, adjust_reading_wpm(500, +1, 100));
+}
+
+void test_reading_step_cycles_through_supported_values_and_clamps() {
+  TEST_ASSERT_EQUAL_UINT16(10, adjust_reading_step(5, +1));
+  TEST_ASSERT_EQUAL_UINT16(25, adjust_reading_step(10, +1));
+  TEST_ASSERT_EQUAL_UINT16(5, adjust_reading_step(5, -1));
+  TEST_ASSERT_EQUAL_UINT16(100, adjust_reading_step(100, +1));
+}
+
+void test_sanitize_clamps_and_snaps_last_speed_to_selected_step() {
+  Settings s;
+  s.last_reading_wpm = 99;
+  TEST_ASSERT_EQUAL_UINT16(100, sanitize(s).last_reading_wpm);
+  s.last_reading_wpm = 513;
+  TEST_ASSERT_EQUAL_UINT16(500, sanitize(s).last_reading_wpm);
+  s.last_reading_wpm = 313;
+  TEST_ASSERT_EQUAL_UINT16(325, sanitize(s).last_reading_wpm);
+  s.reading_step_ppm = 50;
+  s.last_reading_wpm = 325;
+  TEST_ASSERT_EQUAL_UINT16(350, sanitize(s).last_reading_wpm);
+}
+
+void test_sanitize_replaces_unsupported_reading_step_with_default() {
+  Settings s;
+  s.reading_step_ppm = 30;
+  s.last_reading_wpm = 313;
+  const Settings out = sanitize(s);
+  TEST_ASSERT_EQUAL_UINT16(25, out.reading_step_ppm);
+  TEST_ASSERT_EQUAL_UINT16(325, out.last_reading_wpm);
 }
 
 void test_register_is_full_scale_at_hundred_percent() {
@@ -118,5 +156,9 @@ int main() {
   RUN_TEST(test_register_never_reaches_zero_at_minimum);
   RUN_TEST(test_wifi_cycles_through_three_modes_and_wraps);
   RUN_TEST(test_brightness_mode_toggles);
+  RUN_TEST(test_reading_speed_uses_the_selected_step_and_clamps_to_range);
+  RUN_TEST(test_reading_step_cycles_through_supported_values_and_clamps);
+  RUN_TEST(test_sanitize_clamps_and_snaps_last_speed_to_selected_step);
+  RUN_TEST(test_sanitize_replaces_unsupported_reading_step_with_default);
   return UNITY_END();
 }

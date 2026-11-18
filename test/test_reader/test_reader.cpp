@@ -174,18 +174,38 @@ void test_faster_steps_by_25_wpm() {
   TEST_ASSERT_EQUAL_UINT(325, r.wpm());
 }
 
-void test_faster_clamps_at_800_wpm() {
+void test_reader_uses_the_configured_wpm_step() {
+  const char* body = "uno";
+  Reader r(body, std::strlen(body), 0, kStartMs, nullptr, 300, 10);
+  r.faster();
+  TEST_ASSERT_EQUAL_UINT(310, r.wpm());
+  r.slower();
+  r.slower();
+  TEST_ASSERT_EQUAL_UINT(290, r.wpm());
+}
+
+void test_initial_speed_is_normalized_to_range_and_step() {
+  const char* body = "uno";
+  Reader r(body, std::strlen(body), 0, kStartMs, nullptr, 513, 25);
+  TEST_ASSERT_EQUAL_UINT(500, r.wpm());
+  Reader low(body, std::strlen(body), 0, kStartMs, nullptr, 99, 25);
+  TEST_ASSERT_EQUAL_UINT(100, low.wpm());
+  Reader snapped(body, std::strlen(body), 0, kStartMs, nullptr, 313, 5);
+  TEST_ASSERT_EQUAL_UINT(315, snapped.wpm());
+}
+
+void test_faster_clamps_at_500_wpm() {
   const char* body = "uno";
   Reader r(body, std::strlen(body), 0, kStartMs);
   for (int i = 0; i < 40; ++i) r.faster();
-  TEST_ASSERT_EQUAL_UINT(800, r.wpm());
+  TEST_ASSERT_EQUAL_UINT(500, r.wpm());
 }
 
-void test_slower_clamps_at_150_wpm() {
+void test_slower_clamps_at_100_wpm() {
   const char* body = "uno";
   Reader r(body, std::strlen(body), 0, kStartMs);
   for (int i = 0; i < 40; ++i) r.slower();
-  TEST_ASSERT_EQUAL_UINT(150, r.wpm());
+  TEST_ASSERT_EQUAL_UINT(100, r.wpm());
 }
 
 void test_speed_change_applies_to_next_word() {
@@ -377,8 +397,10 @@ int main(int, char**) {
   RUN_TEST(test_resume_holds_current_word_from_resume_time);
   RUN_TEST(test_resume_after_finish_stays_finished);
   RUN_TEST(test_faster_steps_by_25_wpm);
-  RUN_TEST(test_faster_clamps_at_800_wpm);
-  RUN_TEST(test_slower_clamps_at_150_wpm);
+  RUN_TEST(test_reader_uses_the_configured_wpm_step);
+  RUN_TEST(test_initial_speed_is_normalized_to_range_and_step);
+  RUN_TEST(test_faster_clamps_at_500_wpm);
+  RUN_TEST(test_slower_clamps_at_100_wpm);
   RUN_TEST(test_speed_change_applies_to_next_word);
   RUN_TEST(test_reads_spanish_words_with_multibyte_letters);
   RUN_TEST(test_progress_percent_follows_the_shown_word);

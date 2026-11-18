@@ -5,8 +5,8 @@ Status: **proposed wiring, nothing wired or flashed yet.** Temporary substitute 
 ## Mapping
 | Button | Action | GPIO | Notes |
 |---|---|---|---|
-| UP | previous menu item (later: WPM +25) | GPIO5 | RTC-capable, deep-sleep wake possible |
-| DOWN | next menu item (later: WPM -25) | GPIO4 | RTC-capable |
+| UP | previous menu item (increase PPM by selected step while reading) | GPIO5 | RTC-capable, deep-sleep wake possible |
+| DOWN | next menu item (decrease PPM by selected step while reading) | GPIO4 | RTC-capable |
 | SELECT | confirm; long press = back / sleep | GPIO6 | RTC-capable, wake source |
 
 GPIO4-6 avoid: strapping pins (0, 3, 45, 46), octal PSRAM/flash (26-37 on N16R8), USB (19, 20), UART0 (43, 44), I2C (8, 9) and the onboard RGB LED (48).
@@ -52,6 +52,7 @@ Each button is a 4-pin tactile switch (6x6 mm). Pins on the same side are shorte
 
 ## Firmware notes (when implemented)
 - Keep the "no polling" rule: `attachInterrupt(pin, isr, CHANGE)` pushes events to a queue; debounce (~20 ms) and long-press (~800 ms, to tune) in the input task.
+- UP/DOWN repeat after a 400 ms hold and every 150 ms at a steady rate; repeats are ignored outside active reading and numeric setting edits.
 - Pure logic (debounce, long-press classification) goes in `lib/` with Unity tests; this checklist covers the hardware side.
 
 ## Menu test (firmware on `dev`)

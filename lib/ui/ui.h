@@ -22,6 +22,7 @@ enum class Screen : std::uint8_t {
   Brightness,
   Contrast,
   Wifi,
+  SpeedStep,
   About,
   Message,
   Reading,   // RSVP playback of the book chosen in Leer
@@ -31,6 +32,8 @@ enum class Screen : std::uint8_t {
 enum class Event : std::uint8_t {
   Up,
   Down,
+  UpRepeat,
+  DownRepeat,
   Left,
   Right,
   Select,          // short press: open, confirm, or change
@@ -54,6 +57,7 @@ enum class Command : std::uint8_t {
   ReadingSelect,   // adapter: pause, or resume when paused
   ReadingUp,       // adapter: faster while reading, previous word while paused
   ReadingDown,     // adapter: slower while reading, next word while paused
+  SaveReadingSpeed,  // adapter: persist the last global reading speed
   SaveSettings,    // adapter: persist settings() and apply them
 };
 
@@ -74,7 +78,7 @@ struct Outcome {
 
 class Ui {
  public:
-  explicit Ui(const settings::Settings& initial) : settings_(initial) {}
+  explicit Ui(const settings::Settings& initial) : settings_(settings::sanitize(initial)) {}
 
   Outcome handle(Event event);
 
@@ -101,6 +105,7 @@ class Ui {
 
  private:
   std::size_t item_count() const;
+  bool has_back_item() const;
   void enter(Screen screen);
   void show_message(Message message);
   void move(Event event);
@@ -118,6 +123,7 @@ class Ui {
   std::size_t pending_book_ = 0;  // book chosen for deletion
   std::size_t reading_book_ = 0;  // book being read, reopened by Releer
   bool editing_ = false;
+  bool reading_paused_ = false;
   settings::Settings settings_;
 };
 

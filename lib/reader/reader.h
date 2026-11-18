@@ -11,8 +11,7 @@
 // clock, and passes the current time in.
 namespace leeloo::reader {
 
-// Used when a book has no saved speed; the settings menu does not store WPM yet.
-constexpr std::uint32_t kDefaultWpm = 300;
+constexpr std::uint32_t kDefaultWpm = rsvp::kDefaultWpm;
 
 // Byte offset of the book text: the first byte after the "###START###" line.
 // nullopt when the header has no such line, e.g. a damaged file.
@@ -33,9 +32,11 @@ class Reader {
  public:
   // `resume_at` is a saved word offset. An offset that is out of range or inside
   // a UTF-8 sequence starts the book from its first word instead. `pieces`
-  // may be null, which shows every word whole.
+  // may be null, which shows every word whole. `initial_wpm` and `wpm_step` are
+  // the saved global reading speed and its adjustment increment.
   Reader(const char* body, std::size_t size, std::size_t resume_at, std::uint32_t now_ms,
-         PieceCounter pieces = nullptr);
+         PieceCounter pieces = nullptr, std::uint32_t initial_wpm = kDefaultWpm,
+         std::uint32_t wpm_step = rsvp::kDefaultWpmStep);
 
   // Advances past the current word once its hold has elapsed, and moves to the
   // next piece of a split word when its beat has passed. Returns true when the
@@ -84,6 +85,7 @@ class Reader {
   PieceCounter pieces_fn_;
   std::optional<rsvp::WordSpan> current_;
   std::uint32_t wpm_ = kDefaultWpm;
+  std::uint32_t wpm_step_ = rsvp::kDefaultWpmStep;
   std::uint32_t due_ms_ = 0;
   std::uint32_t start_ms_ = 0;   // when the shown word's first beat began (on pace)
   std::uint32_t beat_ms_ = 0;    // one beat of the shown word, fixed when it is shown

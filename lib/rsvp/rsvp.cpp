@@ -334,12 +334,22 @@ bool ends_sentence(const char* text, std::size_t size, const WordSpan& span) {
   return hold_percent(text, size, span) >= kSentenceHold;
 }
 
-std::uint32_t word_delay_ms(std::uint32_t wpm) {
+std::uint32_t normalize_wpm_step(std::uint32_t step) {
+  for (const std::uint32_t supported : kWpmSteps) {
+    if (step == supported) return step;
+  }
+  return kDefaultWpmStep;
+}
+
+std::uint32_t normalize_wpm(std::uint32_t wpm, std::uint32_t step) {
   const std::uint32_t clamped = std::clamp(wpm, kMinWpm, kMaxWpm);
-  // Round to the nearest step; both bounds are already on a step.
-  const std::uint32_t steps = (clamped - kMinWpm + kWpmStep / 2) / kWpmStep;
-  const std::uint32_t snapped = kMinWpm + steps * kWpmStep;
-  return 60000 / snapped;
+  const std::uint32_t normalized_step = normalize_wpm_step(step);
+  const std::uint32_t steps = (clamped - kMinWpm + normalized_step / 2) / normalized_step;
+  return kMinWpm + steps * normalized_step;
+}
+
+std::uint32_t word_delay_ms(std::uint32_t wpm, std::uint32_t step) {
+  return 60000 / normalize_wpm(wpm, step);
 }
 
 }  // namespace leeloo::rsvp

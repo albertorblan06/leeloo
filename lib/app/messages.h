@@ -27,6 +27,8 @@ enum class RsvpCmd : std::uint8_t { Open, Close, Select, Up, Down };
 struct RsvpMsg {
   RsvpCmd cmd;
   std::size_t index;  // Open: library index of the book
+  std::uint32_t initial_wpm = settings::kDefaultWpm;  // Open: saved global speed
+  std::uint32_t wpm_step = settings::kDefaultReadingStepPpm;  // Open: speed increment
 };
 
 // UiService -> NetService.

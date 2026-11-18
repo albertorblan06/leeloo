@@ -43,12 +43,19 @@ std::uint32_t hold_percent(const char* text, std::size_t size, const WordSpan& s
 // paragraph break after it. Same threshold as the sentence hold in hold_percent.
 bool ends_sentence(const char* text, std::size_t size, const WordSpan& span);
 
-constexpr std::uint32_t kMinWpm = 150;
-constexpr std::uint32_t kMaxWpm = 800;
-constexpr std::uint32_t kWpmStep = 25;
+constexpr std::uint32_t kMinWpm = 100;
+constexpr std::uint32_t kMaxWpm = 500;
+constexpr std::uint32_t kDefaultWpm = 300;
+constexpr std::uint32_t kDefaultWpmStep = 25;
+constexpr std::uint32_t kWpmSteps[] = {5, 10, 25, 50, 100};
 
-// Milliseconds to show one word. WPM is clamped to [kMinWpm, kMaxWpm] and
-// snapped to steps of kWpmStep.
-std::uint32_t word_delay_ms(std::uint32_t wpm);
+// The step is selected from kWpmSteps; an invalid value falls back to the default.
+std::uint32_t normalize_wpm_step(std::uint32_t step);
+
+// WPM is clamped to [kMinWpm, kMaxWpm] and snapped from kMinWpm using `step`.
+std::uint32_t normalize_wpm(std::uint32_t wpm, std::uint32_t step = kDefaultWpmStep);
+
+// Milliseconds to show one word at the normalized WPM and selected step.
+std::uint32_t word_delay_ms(std::uint32_t wpm, std::uint32_t step = kDefaultWpmStep);
 
 }  // namespace leeloo::rsvp

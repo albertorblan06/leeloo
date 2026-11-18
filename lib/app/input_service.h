@@ -17,9 +17,8 @@ class InputService {
  public:
   InputService(IPins* pins, rtos::Queue<ui::Event>* ui_out, ILog* log = nullptr);
 
-  // kWaitForever while idle. While a change settles it is one debounce window, after
-  // which on_timeout() samples the pins so the debouncer can confirm the level.
-  std::uint32_t wait_ms() const { return settling_ ? buttons::kDebounceMs : rtos::kWaitForever; }
+  // Waits for debounce or the next held-button repeat; forever while idle.
+  std::uint32_t wait_ms() const;
 
   void on_edge(const RawEdge& edge);
   void on_timeout(std::uint32_t now_ms);
@@ -28,6 +27,8 @@ class InputService {
   struct ButtonState {
     buttons::Debouncer debouncer;
     std::uint32_t pressed_at = 0;
+    std::uint32_t next_repeat_at = 0;
+    bool repeating = false;
   };
 
   void handle_level(std::uint8_t button, bool high, std::uint32_t now_ms);
@@ -37,6 +38,7 @@ class InputService {
   ILog* log_;
   ButtonState states_[kButtonCount];
   bool settling_ = false;
+  std::uint32_t now_ms_ = 0;
 };
 
 }  // namespace leeloo::app

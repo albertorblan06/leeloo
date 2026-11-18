@@ -339,10 +339,10 @@ void test_word_delay_is_200ms_at_300_wpm() {
 }
 
 void test_word_delay_clamps_wpm_to_bounds() {
-  TEST_ASSERT_EQUAL_UINT32(400, leeloo::rsvp::word_delay_ms(0));       // 150 WPM
-  TEST_ASSERT_EQUAL_UINT32(400, leeloo::rsvp::word_delay_ms(150));
-  TEST_ASSERT_EQUAL_UINT32(75, leeloo::rsvp::word_delay_ms(800));
-  TEST_ASSERT_EQUAL_UINT32(75, leeloo::rsvp::word_delay_ms(10000));   // 800 WPM
+  TEST_ASSERT_EQUAL_UINT32(600, leeloo::rsvp::word_delay_ms(0));       // 100 WPM
+  TEST_ASSERT_EQUAL_UINT32(600, leeloo::rsvp::word_delay_ms(100));
+  TEST_ASSERT_EQUAL_UINT32(120, leeloo::rsvp::word_delay_ms(500));
+  TEST_ASSERT_EQUAL_UINT32(120, leeloo::rsvp::word_delay_ms(10000));   // 500 WPM
 }
 
 void test_word_delay_snaps_wpm_to_25_steps() {
@@ -350,6 +350,10 @@ void test_word_delay_snaps_wpm_to_25_steps() {
   TEST_ASSERT_EQUAL_UINT32(184, leeloo::rsvp::word_delay_ms(313));  // -> 325
 }
 
+void test_word_delay_uses_the_configured_wpm_step() {
+  TEST_ASSERT_EQUAL_UINT32(315, leeloo::rsvp::normalize_wpm(313, 5));
+  TEST_ASSERT_EQUAL_UINT32(571, leeloo::rsvp::word_delay_ms(105, 5));
+}
 
 // --- ends_sentence -------------------------------------------------------------
 
@@ -453,6 +457,7 @@ int main() {
   RUN_TEST(test_word_delay_is_200ms_at_300_wpm);
   RUN_TEST(test_word_delay_clamps_wpm_to_bounds);
   RUN_TEST(test_word_delay_snaps_wpm_to_25_steps);
+  RUN_TEST(test_word_delay_uses_the_configured_wpm_step);
   RUN_TEST(test_ends_sentence_for_period);
   RUN_TEST(test_ends_sentence_for_question_and_exclamation);
   RUN_TEST(test_ends_sentence_for_ellipsis);

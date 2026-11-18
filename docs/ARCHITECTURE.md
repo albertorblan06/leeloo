@@ -103,12 +103,13 @@ Core pinning is an optimization and isolation boundary, not a license to share m
 
 ### 4.3 Input semantics
 
-- Boot: show the text logo `Leeloo` until the main menu is ready.
-- Rotation in menus: move selection.
+- Boot: show a brief centered `LEELOO` wordmark and open-book icon before the main menu; do not show simulated progress.
+- UP/DOWN in menus: move selection by one row per press; holds do not repeat navigation.
 - Click in menus: select.
-- Rotation while RSVP is playing: increase/decrease WPM in 25-WPM steps.
+- UP/DOWN while RSVP is playing: increase/decrease WPM by the configured step (5, 10, 25, 50, or 100 PPM; default 25) within 100–500 PPM. A held button repeats after 400 ms and then every 150 ms without acceleration.
+- UP/DOWN in menus move one row per press. Numeric settings repeat only while edit mode is active; categorical settings do not.
 - Click while reading: pause.
-- Rotation while paused: seek by word using a configurable step; the initial default is one word per detent.
+- UP/DOWN while paused: seek to the previous/next sentence, one sentence per press; holds do not repeat seeking.
 - Click while paused: resume.
 - Long press in Wi-Fi mode: stop Wi-Fi and return to the prior menu.
 - Long press while reading or paused: return to the main menu.
@@ -176,9 +177,10 @@ On power loss, incomplete temporary files are ignored/removed during boot. A fil
 
 ## 7. RSVP behavior
 
-- Operational range: 150–800 WPM.
-- Default: 300 WPM.
-- Adjustment: 25 WPM.
+- Operational range: 100–500 WPM (PPM in Spanish UI).
+- Initial speed: 300 WPM until the first reading-speed change; the last-used speed is global across books.
+- Adjustment: configurable 5/10/25/50/100 WPM, default 25.
+- Save the last-used speed when leaving or finishing a book, not when pausing; align it to the selected step.
 - Token: exactly one word.
 - Spanish punctuation and sentence boundaries add configurable pauses.
 - Long words and numeric tokens may receive bounded extra dwell time.

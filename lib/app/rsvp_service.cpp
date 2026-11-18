@@ -43,7 +43,8 @@ void RsvpService::finish_book() {
 }
 
 // Loads book `index` at its saved word. False when the text cannot be used.
-bool RsvpService::open_book(std::size_t index, std::uint32_t now_ms) {
+bool RsvpService::open_book(std::size_t index, std::uint32_t now_ms, std::uint32_t initial_wpm,
+                            std::uint32_t wpm_step) {
   close_book();
   BookBuffer buffer;
   if (!library_->open(index, title_, sizeof title_, &buffer)) return false;
@@ -54,14 +55,15 @@ bool RsvpService::open_book(std::size_t index, std::uint32_t now_ms) {
   }
   std::size_t saved = 0;
   if (!library_->load_position(title_, &saved)) saved = 0;
-  reader_.emplace(buffer.data + *body, buffer.size - *body, saved, now_ms, pieces_);
+  reader_.emplace(buffer.data + *body, buffer.size - *body, saved, now_ms, pieces_, initial_wpm,
+                  wpm_step);
   return true;
 }
 
 bool RsvpService::handle(const RsvpMsg& msg, std::uint32_t now_ms) {
   switch (msg.cmd) {
     case RsvpCmd::Open:
-      if (!open_book(msg.index, now_ms)) {
+      if (!open_book(msg.index, now_ms, msg.initial_wpm, msg.wpm_step)) {
         post(ui_out_, ui::Event::BookOpenFailed, log_, "Cola de UI llena: se pierde BookOpenFailed");
         return true;
       }

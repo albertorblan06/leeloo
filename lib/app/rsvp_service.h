@@ -35,7 +35,8 @@ class RsvpService {
   ReadingFrame frame() const;
 
  private:
-  bool open_book(std::size_t index, std::uint32_t now_ms);
+  bool open_book(std::size_t index, std::uint32_t now_ms, std::uint32_t initial_wpm,
+                 std::uint32_t wpm_step);
   void close_book();
   void save_progress();
   void finish_book();

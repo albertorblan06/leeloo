@@ -31,6 +31,7 @@ constexpr const char* kFirmwareVersion = "0.1.0-dev";
 constexpr int kRowY[4] = {14, 26, 38, 50};
 constexpr int kRowWidth = 124;  // x 124-127 is the scroll gutter
 constexpr std::size_t kVisibleRows = 4;
+constexpr std::size_t kListRows = kVisibleRows - 1;
 constexpr std::size_t kTitleChars = 19;  // 6 px per character, 124 px usable
 
 // U8g2 wants the 8-bit form of the address; the SH1106 is the likely controller.
@@ -78,32 +79,50 @@ void draw_row(int slot, const char* label, const char* value, bool focused) {
   u8g2.setDrawColor(1);
 }
 
+void draw_back_row(int slot, bool focused) {
+  const int y = kRowY[slot];
+  if (focused) {
+    u8g2.drawBox(0, y - 1, kRowWidth, 12);
+    u8g2.setDrawColor(0);
+  }
+  u8g2.drawHLine(4, y + 5, 7);
+  u8g2.drawLine(4, y + 5, 8, y + 1);
+  u8g2.drawLine(4, y + 5, 8, y + 9);
+  u8g2.drawUTF8(14, y, "Atrás");
+  u8g2.setDrawColor(1);
+}
+
 // Thin track on the right edge; the thumb shows where the window sits in the list.
-void draw_gutter(std::size_t count, std::size_t start) {
-  if (count <= kVisibleRows) return;
+void draw_gutter(std::size_t count, std::size_t start, std::size_t visible_rows) {
+  if (count <= visible_rows) return;
   constexpr int kTop = 13;
-  constexpr int kHeight = 50;
-  int thumb = static_cast<int>(kHeight * kVisibleRows / count);
+  constexpr int kHeight = 36;
+  int thumb = static_cast<int>(kHeight * visible_rows / count);
   if (thumb < 6) thumb = 6;
-  const int thumb_top = kTop + (kHeight - thumb) * static_cast<int>(start) / static_cast<int>(count - kVisibleRows);
+  const int thumb_top =
+      kTop + (kHeight - thumb) * static_cast<int>(start) / static_cast<int>(count - visible_rows);
   u8g2.drawFrame(124, kTop, 3, kHeight);
   u8g2.drawBox(124, thumb_top, 3, thumb);
 }
 
 // Labels for the list rows that are on screen, scrolled to keep the cursor visible.
 template <typename LabelFn>
-void draw_list(const char* title, std::size_t count, std::size_t cursor, const char* empty, LabelFn label, const char* value) {
+void draw_list(const char* title, std::size_t count, std::size_t cursor, const char* empty,
+               LabelFn label, const char* value) {
   draw_title(title);
   if (count == 0) {
     draw_line(0, empty);
     return;
   }
-  g_list_start = leeloo::text::scroll_start(g_list_start, cursor, count, kVisibleRows);
-  for (std::size_t slot = 0; slot < kVisibleRows && g_list_start + slot < count; ++slot) {
+  const bool back_focused = cursor == count;
+  const std::size_t list_cursor = back_focused ? count - 1 : cursor;
+  g_list_start = leeloo::text::scroll_start(g_list_start, list_cursor, count, kListRows);
+  for (std::size_t slot = 0; slot < kListRows && g_list_start + slot < count; ++slot) {
     const std::size_t i = g_list_start + slot;
     draw_row(static_cast<int>(slot), label(i), value, i == cursor);
   }
-  draw_gutter(count, g_list_start);
+  draw_back_row(static_cast<int>(kVisibleRows - 1), back_focused);
+  draw_gutter(count, g_list_start, kListRows);
 }
 
 const char* wifi_label(WifiMode mode) {
@@ -163,7 +182,7 @@ void draw_reading(const leeloo::app::ReadingFrame& frame) {
   if (frame.state == leeloo::reader::State::Paused) {
     std::snprintf(label, sizeof label, "PAUSA");
   } else if (frame.show_wpm) {
-    std::snprintf(label, sizeof label, "%lu WPM", static_cast<unsigned long>(frame.wpm));
+    std::snprintf(label, sizeof label, "%lu PPM", static_cast<unsigned long>(frame.wpm));
   }
   if (label[0] != '\0') u8g2.drawUTF8(0, 0, label);
 }
@@ -179,26 +198,37 @@ void draw_read(const Status& status, const leeloo::ui::Ui& ui) {
     draw_title("LEER");
     draw_line(0, "Almacenamiento");
     draw_line(1, "no disponible");
+    draw_back_row(3, ui.cursor() == ui.book_count());
+    return;
+  }
+  if (ui.book_count() == 0) {
+    draw_title("LEER");
+    draw_line(0, "Sin libros");
+    draw_line(1, "Sube uno desde");
+    draw_line(2, "Biblioteca.");
+    draw_back_row(3, ui.cursor() == 0);
     return;
   }
   char label[80];
   draw_list(
-      "LEER", ui.book_count(), ui.cursor(), "Sin libros",
+      "LEER", ui.book_count(), ui.cursor(), "",
       [&label](std::size_t i) {
         book_label(i, label, sizeof label);
         return static_cast<const char*>(label);
       },
       nullptr);
-  if (ui.book_count() == 0) {
-    draw_line(1, "Sube uno desde");
-    draw_line(2, "Biblioteca.");
-  }
 }
 
 void draw_delete_list(const leeloo::ui::Ui& ui) {
+  if (ui.book_count() == 0) {
+    draw_title("BORRAR");
+    draw_line(0, "Sin libros");
+    draw_back_row(3, ui.cursor() == 0);
+    return;
+  }
   char label[80];
   draw_list(
-      "BORRAR", ui.book_count(), ui.cursor(), "Sin libros",
+      "BORRAR", ui.book_count(), ui.cursor(), "",
       [&label](std::size_t i) {
         book_label(i, label, sizeof label);
         return static_cast<const char*>(label);
@@ -212,6 +242,7 @@ void draw_upload(const Status& status) {
   draw_title("SUBIR");
   if (!status.ap_running) {
     draw_starting();
+    draw_back_row(3, true);
     return;
   }
   char pin_line[24];
@@ -221,7 +252,7 @@ void draw_upload(const Status& status) {
   draw_line(0, leeloo::upload_server::kSsid);
   draw_line(1, pin_line);
   draw_line(2, address_line);
-  draw_line(3, "SELECT largo: salir");
+  draw_back_row(3, true);
 }
 
 void draw_message(const leeloo::ui::Ui& ui) {
@@ -237,6 +268,7 @@ void draw_about(const Status& status, const leeloo::ui::Ui& ui) {
   std::snprintf(free_kb, sizeof free_kb, "%u KB", static_cast<unsigned>(status.free_bytes / 1024));
   draw_row(1, "Libre", free_kb, false);
   draw_row(2, "Wi-Fi", wifi_label(ui.settings().wifi), false);
+  draw_back_row(3, ui.cursor() == 0);
 }
 
 // "< v >" shows a value that can be edited; "[ v ]" marks the one being edited now.
@@ -264,25 +296,35 @@ void draw_brightness(const leeloo::ui::Ui& ui) {
   } else if (ui.sensor_unavailable()) {
     draw_line(2, "Sensor no disponible");
   }
+  draw_back_row(3, ui.cursor() == (manual ? 2 : 1));
 }
 
 void draw_contrast(const leeloo::ui::Ui& ui) {
   draw_title("CONTRASTE");
-  draw_percent_row(0, "Nivel", ui.settings().contrast_percent, true, ui.editing());
+  draw_percent_row(0, "Nivel", ui.settings().contrast_percent, ui.cursor() == 0, ui.editing());
+  draw_back_row(3, ui.cursor() == 1);
 }
 
 void draw_wifi_setting(const leeloo::ui::Ui& ui) {
   draw_title("WI-FI");
   char value[32];
   format_value(value, sizeof value, wifi_label(ui.settings().wifi), ui.editing());
-  draw_row(0, "Modo", value, true);
+  draw_row(0, "Modo", value, ui.cursor() == 0);
+  draw_back_row(3, ui.cursor() == 1);
 }
 
 void draw_root(const leeloo::ui::Ui& ui) {
   static const char* const kItems[] = {"Leer", "Biblioteca", "Ajustes", "Info"};
   draw_title("LEELOO");
-  for (std::size_t i = 0; i < 4; ++i) {
-    draw_row(static_cast<int>(i), kItems[i], ">", i == ui.cursor());
+  for (int slot = 0; slot < 4; ++slot) {
+    const int y = kRowY[slot];
+    if (static_cast<std::size_t>(slot) == ui.cursor()) {
+      u8g2.drawBox(0, y - 1, kRowWidth, 12);
+      u8g2.setDrawColor(0);
+    }
+    u8g2.drawUTF8(4, y, kItems[slot]);
+    u8g2.drawUTF8(117, y, ">");
+    u8g2.setDrawColor(1);
   }
 }
 
@@ -290,13 +332,30 @@ void draw_manage(const leeloo::ui::Ui& ui) {
   draw_title("BIBLIOTECA");
   draw_row(0, "Subir", ">", ui.cursor() == 0);
   draw_row(1, "Borrar", ">", ui.cursor() == 1);
+  draw_back_row(3, ui.cursor() == 2);
 }
 
 void draw_settings(const leeloo::ui::Ui& ui) {
+  static const char* const kItems[] = {"Brillo", "Contraste", "Wi-Fi", "Paso lectura"};
   draw_title("AJUSTES");
-  draw_row(0, "Brillo", ">", ui.cursor() == 0);
-  draw_row(1, "Contraste", ">", ui.cursor() == 1);
-  draw_row(2, "Wi-Fi", ">", ui.cursor() == 2);
+  const std::size_t list_cursor = ui.cursor() == 4 ? 3 : ui.cursor();
+  g_list_start = leeloo::text::scroll_start(g_list_start, list_cursor, 4, kListRows);
+  for (std::size_t slot = 0; slot < kListRows && g_list_start + slot < 4; ++slot) {
+    const std::size_t i = g_list_start + slot;
+    draw_row(static_cast<int>(slot), kItems[i], ">", i == ui.cursor());
+  }
+  draw_back_row(3, ui.cursor() == 4);
+  draw_gutter(4, g_list_start, kListRows);
+}
+
+void draw_speed_step(const leeloo::ui::Ui& ui) {
+  draw_title("PASO DE LECTURA");
+  char text[16];
+  std::snprintf(text, sizeof text, "%u PPM", static_cast<unsigned>(ui.settings().reading_step_ppm));
+  char value[24];
+  format_value(value, sizeof value, text, ui.editing());
+  draw_row(0, "Incremento", value, ui.cursor() == 0);
+  draw_back_row(3, ui.cursor() == 1);
 }
 
 void draw_delete_confirm(const leeloo::ui::Ui& ui) {
@@ -330,6 +389,28 @@ bool init() {
 
 bool ready() { return g_ready; }
 
+void show_splash() {
+  if (!g_ready) return;
+  {
+    U8g2Lock lock;
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_6x10_tf);
+    u8g2.setFontPosTop();
+    u8g2.drawLine(64, 12, 52, 15);
+    u8g2.drawLine(52, 15, 52, 27);
+    u8g2.drawLine(52, 27, 64, 30);
+    u8g2.drawLine(64, 12, 76, 15);
+    u8g2.drawLine(76, 15, 76, 27);
+    u8g2.drawLine(76, 27, 64, 30);
+    u8g2.drawVLine(64, 12, 18);
+    u8g2.drawHLine(55, 19, 7);
+    u8g2.drawHLine(66, 19, 7);
+    u8g2.drawUTF8(46, 36, "LEELOO");
+    u8g2.drawHLine(46, 50, 36);
+  }
+  u8g2.sendBuffer();
+}
+
 void set_contrast(std::uint8_t register_value) {
   if (g_ready) u8g2.setContrast(register_value);
 }
@@ -358,6 +439,7 @@ static void draw_screen(const leeloo::ui::Ui& ui, const Status& status, const le
     case Screen::Brightness: draw_brightness(ui); break;
     case Screen::Contrast: draw_contrast(ui); break;
     case Screen::Wifi: draw_wifi_setting(ui); break;
+    case Screen::SpeedStep: draw_speed_step(ui); break;
     case Screen::About: draw_about(status, ui); break;
     case Screen::Message: draw_message(ui); break;
   }

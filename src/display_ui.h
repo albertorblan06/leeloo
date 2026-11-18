@@ -21,6 +21,7 @@ struct Status {
 // Starts the I2C bus and the panel. Returns false when no OLED answers at 0x3C/0x3D.
 bool init();
 bool ready();
+void show_splash();
 
 // Draws one frame. Called by the display task only: it owns the I2C bus. The
 // reading frame is used on the Reading screen and ignored elsewhere.

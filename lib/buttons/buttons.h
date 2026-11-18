@@ -11,6 +11,10 @@ constexpr std::uint32_t kDebounceMs = 20;
 // Press duration at or above this is a long press. Initial value, not measured.
 constexpr std::uint32_t kLongPressMs = 800;
 
+// UP/DOWN repeat at a fixed pace after the initial press.
+constexpr std::uint32_t kRepeatDelayMs = 400;
+constexpr std::uint32_t kRepeatIntervalMs = 150;
+
 enum class Edge { None, Pressed, Released };
 enum class Press { Short, Long };
 

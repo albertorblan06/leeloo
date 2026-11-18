@@ -42,7 +42,7 @@
 
 22. las ISR solo alimentan tarea de FreeRTOS.
 
-23. rango operativo 150-800 PPM y valor predeterminado 300. el paso de ajuste de 25 en 25.
+23. rango operativo 100-500 PPM; velocidad global inicial 300. Paso configurable entre 5/10/25/50/100 PPM (inicial 25); se recuerda la última velocidad al salir o terminar un libro, no al pausar. El techo se eligió para probar, no es un óptimo universal.
 
 24. sí, deberian recibir pausa. 
 

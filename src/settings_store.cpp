@@ -10,6 +10,8 @@ constexpr const char* kKeyBrightnessMode = "bmode";
 constexpr const char* kKeyBrightness = "blevel";
 constexpr const char* kKeyContrast = "contrast";
 constexpr const char* kKeyWifi = "wifi";
+constexpr const char* kKeyWpm = "wpm";
+constexpr const char* kKeyWpmStep = "wpmstep";
 
 }  // namespace
 
@@ -22,6 +24,8 @@ leeloo::settings::Settings load() {
       prefs.getUChar(kKeyBrightnessMode, static_cast<std::uint8_t>(s.brightness_mode)));
   s.brightness_percent = prefs.getUChar(kKeyBrightness, s.brightness_percent);
   s.contrast_percent = prefs.getUChar(kKeyContrast, s.contrast_percent);
+  s.last_reading_wpm = prefs.getUShort(kKeyWpm, s.last_reading_wpm);
+  s.reading_step_ppm = prefs.getUShort(kKeyWpmStep, s.reading_step_ppm);
   s.wifi = static_cast<leeloo::settings::WifiMode>(
       prefs.getUChar(kKeyWifi, static_cast<std::uint8_t>(s.wifi)));
   prefs.end();
@@ -35,6 +39,8 @@ bool save(const leeloo::settings::Settings& settings) {
   ok &= prefs.putUChar(kKeyBrightnessMode, static_cast<std::uint8_t>(settings.brightness_mode)) > 0;
   ok &= prefs.putUChar(kKeyBrightness, settings.brightness_percent) > 0;
   ok &= prefs.putUChar(kKeyContrast, settings.contrast_percent) > 0;
+  ok &= prefs.putUShort(kKeyWpm, settings.last_reading_wpm) > 0;
+  ok &= prefs.putUShort(kKeyWpmStep, settings.reading_step_ppm) > 0;
   ok &= prefs.putUChar(kKeyWifi, static_cast<std::uint8_t>(settings.wifi)) > 0;
   prefs.end();
   return ok;

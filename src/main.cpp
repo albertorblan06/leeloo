@@ -12,12 +12,17 @@
 
 void setup() {
   Serial.begin(115200);
-  if (!leeloo::storage::mount()) Serial.println("LittleFS no montó: libros no disponibles.");
   const leeloo::settings::Settings boot = leeloo::settings_store::load();
 
-  if (!leeloo::display::init()) Serial.println("No OLED at 0x3C/0x3D: input still reports on serial.");
+  if (!leeloo::display::init()) {
+    Serial.println("No OLED at 0x3C/0x3D: input still reports on serial.");
+  } else {
+    leeloo::display::show_splash();
+  }
   // Before the tasks exist, so no other task can be using the bus yet.
   leeloo::display::set_contrast(leeloo::settings::display_register(boot.brightness_percent, boot.contrast_percent));
+  if (!leeloo::storage::mount()) Serial.println("LittleFS no montó: libros no disponibles.");
+  if (leeloo::display::ready()) delay(900);
 
   leeloo::tasks::start(boot);
 }

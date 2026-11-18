@@ -33,7 +33,9 @@ void UiService::handle(ui::Event event) {
 
 void UiService::execute(const ui::Outcome& out) {
   const auto to_rsvp = [this](RsvpCmd cmd, std::size_t index) {
-    post(rsvp_out_, RsvpMsg{cmd, index}, log_, "Cola de lectura llena: se pierde una orden");
+    post(rsvp_out_,
+         RsvpMsg{cmd, index, ui_.settings().last_reading_wpm, ui_.settings().reading_step_ppm}, log_,
+         "Cola de lectura llena: se pierde una orden");
   };
   const auto to_net = [this](NetCmd cmd) {
     post(net_out_, NetMsg{cmd, settings::WifiMode::Auto, false}, log_,
@@ -47,6 +49,9 @@ void UiService::execute(const ui::Outcome& out) {
       to_rsvp(RsvpCmd::Open, out.index);
       return;
     case ui::Command::CloseBook:
+      if (!store_->save(ui_.settings()) && log_ != nullptr) {
+        log_->log("Ajustes: no se pudo guardar la última velocidad de lectura");
+      }
       to_rsvp(RsvpCmd::Close, 0);
       return;
     case ui::Command::ReadingSelect:
@@ -57,6 +62,11 @@ void UiService::execute(const ui::Outcome& out) {
       return;
     case ui::Command::ReadingDown:
       to_rsvp(RsvpCmd::Down, 0);
+      return;
+    case ui::Command::SaveReadingSpeed:
+      if (!store_->save(ui_.settings()) && log_ != nullptr) {
+        log_->log("Ajustes: no se pudo guardar la última velocidad de lectura");
+      }
       return;
     case ui::Command::StartUpload:
       to_net(NetCmd::StartUpload);

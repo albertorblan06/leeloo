@@ -92,7 +92,7 @@ The display is 1-bit. Anything that looks like a "color" on the web becomes blac
 
 | Role | Rendering |
 |---|---|
-| Status (WPM, battery %) | Top bar, 6x10, left and right aligned |
+| Status (PPM, battery %) | Top bar, 6x10, left and right aligned |
 | Section title | Uppercase, 6x10, one line above its list |
 | Item | 6x10, left aligned, 2 px left padding |
 | Focused item | Inverted: white bar, black text, full list width |
@@ -105,7 +105,7 @@ The focused row is the OLED equivalent of Loudop's `--focus`. Do not draw an ext
 
 ### 3.3 Scrolling and wrapping
 
-- Rotation moves the cursor and wraps around at both ends (`lib/menu/menu.h`).
+- UP/DOWN move the cursor and wrap around at both ends (`lib/menu/menu.h`).
 - The window scrolls so the cursor stays visible. Keep at least one item above or below the cursor when possible.
 - Text longer than the row is truncated with `…`. Never wrap a menu item onto two lines.
 
@@ -115,20 +115,19 @@ No animation. The screen changes instantly. Animation costs I2C time that belong
 
 ## 4. Main menu
 
-Proposed items, in order. Confirm with the user (see §9).
+Use a text-only refined minimal list for the current three-button firmware. Labels stay visible and the focused row is inverted.
 
 ```
- WPM 300              87%      <- status bar (y 0-9)
------------------------------   <- rule (y 11)
- Continuar                      <- focused (inverted)
- Biblioteca                     >
- Subir libro                    >
- Ajustes                        >
+LEELOO                           <- title (y 0-9)
+-----------------------------    <- rule (y 11)
+ Leer                            <- focused (inverted)
+ Biblioteca
+ Ajustes
+ Info
 ```
 
-- Rotation: move cursor. Click: open the item.
-- Long press: enter deep sleep (ARCHITECTURE §4.3). Show a one-line confirmation only if the wake gesture needs explaining; decide at hardware gate.
-- "Continuar" is shown only when a progress record exists. Without it the list starts at "Biblioteca".
+- Keep all four destinations visible on the 128×64 display. Do not draw pictograms beside the main-menu labels.
+- UP/DOWN: move the focus. SELECT: open the item. SELECT long retains its existing navigation behavior.
 
 ## 5. Other screens (shared rules)
 
@@ -136,11 +135,11 @@ Each screen follows §3. Specific layouts are defined when each state is built; 
 
 | Screen | Rule |
 |---|---|
-| Boot | Only the text `Leeloo`, centered, 12 px high. No progress bar. |
+| Boot | Brief centered `LEELOO` wordmark and open-book line icon. No simulated progress bar. |
 | Library | Title row, then list of books. Truncate titles. Empty state: `Sin libros` plus one line of help. |
 | Reading | Only WPM and battery %. The word is the largest text on screen. |
-| Paused | Progress and time may share the screen with controls, as allowed by ARCHITECTURE §3.2. Use one section per screen; rotation pages between them. |
-| Settings | Rows with values on the right (§3.2). Toggles as `Sí` / `No`. |
+| Paused | Progress and time may share the screen with controls, as allowed by ARCHITECTURE §3.2. UP/DOWN seek one sentence per press. |
+| Settings | Rows with values on the right (§3.2), including the configurable reading-speed increment. Toggles as `Sí` / `No`. |
 | Wi-Fi Upload | Show SSID, PIN, and address on three lines. Long press exits (ARCHITECTURE §4.3). |
 | Error | One line title in uppercase, up to two lines of help in Spanish, then `Pulsa para volver`. |
 
@@ -151,12 +150,13 @@ Settings mapping from Loudop's Preferencias screen:
 | Modo: Sistema / Claro / Oscuro | Not ported: the device is always dark. Nearest setting is Brillo: `< Auto >` / `< Manual >` (ARCHITECTURE §3.2) |
 | Avisos: Sí / No per item | Háptico: `Sí` / `No` |
 | Sub-screens with chevron | Submenu with `>` |
+| Reading speed | Paso de lectura: 5/10/25/50/100 PPM; last-used global speed, 100–500 PPM |
 
 ## 6. Input conventions
 
 From ARCHITECTURE §4.3:
 
-- Rotate: move in menus, change WPM while reading, seek while paused.
+- UP/DOWN: move in menus, change PPM while reading, seek while paused.
 - Click: select in menus, pause while reading, resume while paused.
 - Long press: back to main menu from reading or paused; exit Wi-Fi; sleep from main menu.
 
