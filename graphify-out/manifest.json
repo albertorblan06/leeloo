@@ -618,21 +618,21 @@
     "semantic_hash": ""
   },
   "hardware/enclosure/build_enclosure.py": {
-    "mtime": 1795544877.6737032,
-    "seen": 1795544900.261173,
-    "ast_hash": "ec9d9f586ffa5787efac7f3bc0f4dc52",
+    "mtime": 1795546446.5933757,
+    "seen": 1795546491.271283,
+    "ast_hash": "fb044eb01188f72300b5e23d79ef5db8",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/enclosure.md": {
-    "mtime": 1795544898.786661,
-    "seen": 1795544900.261259,
-    "ast_hash": "8e8332d38c17a6f5d9b358af264743ff",
+    "mtime": 1795546489.0385249,
+    "seen": 1795546491.2713711,
+    "ast_hash": "e8dfe06e19afa7207e338d37fc67ab50",
     "semantic_hash": ""
   },
   "hardware/enclosure/README.md": {
-    "mtime": 1795544898.7834456,
-    "seen": 1795544900.2612648,
-    "ast_hash": "8e12a0da702ffe07f07d7be5cd359e2b",
+    "mtime": 1795546489.0381322,
+    "seen": 1795546491.271376,
+    "ast_hash": "f0656f058b9f28c69b4be20f290e14ac",
     "semantic_hash": ""
   },
   "tools/mic_test/main.cpp": {
