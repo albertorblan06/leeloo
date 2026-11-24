@@ -46,7 +46,7 @@ D = dict(
     wall=2.0, plate=1.6, r_corner=4.0, win_margin=0.0,
     win_dy=0.0,                               # extra window offset relative to the OLED (the OLED itself already moved)
     boss_d=5.4, pilot_d=1.6,                  # perfboard corner bosses, M2 self-tapping (5.4 reaches the wall)
-    front_fillet=0.8,                         # outer edge of the front face (no sharp edge on the bed side)
+    bed_chamfer=0.8,                          # 45 deg on the outer edge of the face that lies on the bed (a fillet would sag)
     oled_boss_d=4.2, oled_pilot_d=2.0, oled_pilot_depth=3.0,   # OLED bosses, M2.5 x 4 screws
     slot_w=12.0, knob_d=18.0,
     rocker_top_trim=2.3,                      # rocker/slot top end pulled down so it clears the lowered OLED PCB (edge at y -1.95)
@@ -56,19 +56,25 @@ D = dict(
     pad_up=2.5,                               # how far the pads stand proud of the plate (console style)
     pad_fillet_rocker=1.0, pad_fillet_select=1.2,
     flange_w=16.0, flange_t=2.2, leg_d=6.0, gap_half=1.5,
-    rail_t=1.2, rail_h=3.5, rib_t=1.2, rib_h=0.8,
+    # Thin walls are whole multiples of the 0.45 mm line width (3 lines = 1.35 mm); 2.0 mm walls are left to the slicer.
+    rail_t=1.35, rail_h=3.5, rib_t=1.35, rib_h=0.8,
+    flange_chamfer=1.0,                       # 45 deg on the flange face that looks at the pad (it prints pad-down)
     # sel_leg_gap 0.05 is below the +-0.3 switch-height tolerance: if SELECT reads pressed at rest, raise it
-    sel_flange_d=21.0, sel_flange_t=1.8, sel_leg_d=6.0, sel_leg_gap=0.05, tube_wall=1.2,
+    sel_flange_d=21.0, sel_flange_t=1.8, sel_leg_d=6.0, sel_leg_gap=0.05, tube_wall=1.35,
     # back half. Battery on edge at the top end, TP4056 on edge at the bottom end; the case width follows the old aspect ratio.
     bat=(46.0, 8.25, 36.6),                   # X, Y, Z of the LiPo (user-supplied box; the checklist still names a smaller cell)
-    bat_clr=0.3, bay_rib=1.0,                 # clearance around the battery; rib between the board and the battery bay
-    bat_stop_t=1.0, bat_stop_h=15.0,          # side stops that keep the battery centred in X
+    # Thin ribs snap when printed and handled: the bay rib is 2 mm, and a stepped foot on its board side (the battery side has
+    # only 0.3 mm of clearance, so a fillet there would hit the cell) widens its base.
+    bat_clr=0.3, bay_rib=2.0, rib_foot_w=1.5, rib_foot_h=3.0,   # clearance around the battery; rib between the board and the bay
+    bat_stop_t=2.0, bat_stop_h=15.0,          # side stops that keep the battery centred in X
     tp=(28.0, 4.15, 17.5),                    # TP4056 X, Y (USB-C included), Z: measured with calipers
     tp_pcb_t=1.2, tp_usb_len=7.3, tp_usb_w=9.0,   # estimates: PCB thickness, USB-C receptacle length (X) and width (Z)
     tp_clr=0.3, tp_stop_h=8.0,                # gap to the wall and to the screw posts; height of the stop and the retaining rib
+    tp_stop_t=2.0, tp_ret_t=1.35,              # thickness of the stop and of the retaining rib
     usb_open_clr=0.3,                         # per side around the receptacle in the wall
     usb_recess_w=13.0, usb_recess_h=7.5, usb_recess_d=1.0,   # outer pocket for the plug overmold
-    floor_t=1.6, lip_h=2.0, lip_t=1.0, lip_clr=0.15,         # back cover floor and alignment lip
+    floor_t=1.6, lip_h=2.0, lip_t=1.35, lip_clr=0.15,         # back cover floor and alignment lip
+    # post_d 6.4 leaves a 1.1 mm wall round the counterbore; 6.9 (3 lines) would enter the top wire keep-out (x to 20.4) at x = +-23
     post_d=6.4, post_hole_d=2.4, post_cb_d=4.2, post_top=4.0,   # screw posts: M2 x 10, 4 mm of post above the counterbore
 )
 
@@ -127,15 +133,51 @@ def box(c, name, x0, y0, x1, y1, z0, z1, op=NEW, target=None):
     return None
 
 
-def cut_box(c, body, x0, y0, x1, y1, z0, z1):
-    """Cut a box out of `body` (a tool body in the XY-based frame avoids the YZ/XZ sketch axis mapping)."""
-    tool = box(c, 'cut tool', x0, y0, x1, y1, z0, z1)
+def combine(c, body, tool, op):
     tools = adsk.core.ObjectCollection.create()
     tools.add(tool)
     ci = c.features.combineFeatures.createInput(body, tools)
-    ci.operation = CUT
+    ci.operation = op
     ci.isKeepToolBodies = False
     c.features.combineFeatures.add(ci)
+
+
+def cut_box(c, body, x0, y0, x1, y1, z0, z1):
+    """Cut a box out of `body` (a tool body in the XY-based frame avoids the YZ/XZ sketch axis mapping)."""
+    combine(c, body, box(c, 'cut tool', x0, y0, x1, y1, z0, z1), CUT)
+
+
+def round_cavity(c, body, cw, y0, y1, r, z0, z1):
+    """Round the 4 vertical corners of the rectangular cavity (|x| = cw, y = y0 / y1, from z0 to z1) so the wall keeps its thickness."""
+    sel = adsk.core.ObjectCollection.create()
+    for e in vertical_edges(body):
+        bb = e.boundingBox
+        near_corner = abs(abs(bb.minPoint.x * 10) - cw) < 1e-3 and (abs(bb.minPoint.y * 10 - y0) < 1e-3 or abs(bb.minPoint.y * 10 - y1) < 1e-3)
+        if near_corner and abs(bb.minPoint.z * 10 - z0) < 1e-3 and abs(bb.maxPoint.z * 10 - z1) < 1e-3:
+            sel.add(e)
+    assert sel.count == 4, 'expected 4 cavity corner edges, found %d' % sel.count
+    fillet(c, sel, r)
+
+
+def sloped_ledge(c, body, x0, y0, x1, y1, z0, z1, axis, inner, d):
+    """Join a ledge box whose inner bottom edge is chamfered 45 deg (no flat overhang when printed floor-down).
+
+    axis: 'y' for a strip along Y (inner edge at x == inner), 'x' for a strip along X (inner edge at y == inner).
+    """
+    tool = box(c, 'ledge', x0, y0, x1, y1, z0, z1)
+    sel = adsk.core.ObjectCollection.create()
+    for e in tool.edges:
+        g = e.geometry
+        if g.objectType != adsk.core.Line3D.classType():
+            continue
+        dv = g.startPoint.vectorTo(g.endPoint)
+        pos = g.startPoint.x if axis == 'y' else g.startPoint.y
+        along = dv.y if axis == 'y' else dv.x
+        if abs(abs(along) - dv.length) < 1e-6 and abs(g.startPoint.z * 10 - z0) < 1e-3 and abs(pos * 10 - inner) < 1e-3:
+            sel.add(e)
+    assert sel.count == 1, 'ledge chamfer edge not found'
+    chamfer(c, sel, d)
+    combine(c, body, tool, JOIN)
 
 
 def cyl(c, name, cx, cy, d, z0, z1, op=NEW, target=None):
@@ -191,7 +233,8 @@ def layout(k, z_plate):
     post_y = k['pcb_h'] / 2 - k['pcb_hole_inset'] + k['post_d'] / 2   # the bottom posts end here
     tp_y1 = -post_y - k['tp_clr']
     tp_y0 = tp_y1 - k['tp'][1]
-    cav_bot = tp_y0 - k['tp_clr']
+    cav_r = k['r_corner'] - w                                          # cavity corner radius: keeps the wall at `wall` in the corners
+    cav_bot = tp_y0 - cav_r
     length = (cav_top + w) - (cav_bot - w)
     ratio = (k['pcb_w'] + 2 * (k['side_clr'] + w)) / (k['pcb_h'] + 2 * (k['wire_out'] + k['side_clr'] + w))
     cw = length * ratio / 2 - w
@@ -202,7 +245,7 @@ def layout(k, z_plate):
     assert k['bat'][0] / 2 + k['bat_clr'] + k['bat_stop_t'] <= cw, 'battery stops do not fit the width'
     assert tp_x1 - k['tp'][0] > -cw + 2.0, 'TP4056 does not fit the width'
     return dict(
-        hw=cw + w, cw=cw, y_rib0=y_rib0, y_bat0=y_bat0, y_bat1=y_bat1, cav_top=cav_top, cav_bot=cav_bot,
+        hw=cw + w, cw=cw, cav_r=cav_r, y_rib0=y_rib0, y_bat0=y_bat0, y_bat1=y_bat1, cav_top=cav_top, cav_bot=cav_bot,
         y_top_out=cav_top + w, y_bot_out=cav_bot - w, length=length,
         z_bat0=z_bat0, z_bat1=z_bat1, z_in=z_in, z_cov0=z_in - k['floor_t'],
         tp_x1=tp_x1, tp_x0=tp_x1 - k['tp'][0], tp_y0=tp_y0, tp_y1=tp_y1, tp_zc=z_in + k['tp'][2] / 2,
@@ -297,12 +340,14 @@ def build():
     body = ext(c, sk, z_top - z_bot, NEW).bodies.item(0)
     body.name = 'Front shell'
     fillet(c, vertical_edges(body), k['r_corner'])
-    fillet(c, edges_at_z(body, z_top), k['front_fillet'])     # soften the front-face perimeter
+    chamfer(c, edges_at_z(body, z_top), k['bed_chamfer'])     # the front face lies on the bed: a 45 deg chamfer prints, a fillet sags
 
     ext(c, rect_sketch(c, 'shell cavity', -cw, Ly['cav_bot'], cw, Ly['cav_top'], z_bot), z_plate - z_bot, CUT, body)
+    round_cavity(c, body, cw, Ly['cav_bot'], Ly['cav_top'], Ly['cav_r'], z_bot, z_plate)
     # rib that closes the board side of the battery bay; it stops short of the walls so cables can pass at both sides
     rib_x = k['pcb_w'] / 2 + k['side_clr']
     box(c, 'battery rib', -rib_x, Ly['y_rib0'], rib_x, Ly['y_rib0'] + k['bay_rib'], z_bot, z_plate, JOIN, body)
+    box(c, 'battery rib foot', -rib_x, Ly['y_rib0'] - k['rib_foot_w'], rib_x, Ly['y_rib0'], z_plate - k['rib_foot_h'], z_plate, JOIN, body)
 
     # plate cutouts
     sk = c.sketches.add(plane_at(c, z_plate)); sk.name = 'plate cutouts'
@@ -357,16 +402,11 @@ def build():
     fz1 = fz0 + k['flange_t']
     end_in = k['rocker_end_clr'] - k['slide_clr']      # pull the rocker ends in without loosening its sides
     plen_lo = yb + end_in - (r - k['slide_clr']); plen_hi = yt - end_in + (r - k['slide_clr'])
-    rk = box(c, 'Rocker', sx - k['flange_w'] / 2, plen_lo, sx + k['flange_w'] / 2, plen_hi, fz0, fz1)
-    ce = adsk.core.ObjectCollection.create()
-    for e in rk.edges:
-        g = e.geometry
-        if g.objectType != adsk.core.Line3D.classType():
-            continue
-        dv = g.startPoint.vectorTo(g.endPoint)
-        if abs(abs(dv.y) - dv.length) < 1e-6 and abs(g.startPoint.z * 10 - fz0) < 1e-3 and abs(abs(g.startPoint.x * 10 - sx) - k['flange_w'] / 2) < 1e-3:
-            ce.add(e)
-    chamfer(c, ce, k['flange_t'] - 0.1)
+    fr = k['flange_w'] / 2
+    # stadium flange (a rectangle would overhang ~4 mm flat at the ends); the chamfer is on the face that looks at the pad
+    rk = ext(c, stadium_sketch(c, 'flange', sx, plen_hi - fr, plen_lo + fr, fr, fz0), k['flange_t'], NEW).bodies.item(0)
+    rk.name = 'Rocker'
+    chamfer(c, edges_at_z(rk, fz1), k['flange_chamfer'])
     pr = r - k['slide_clr']
     ext(c, stadium_sketch(c, 'necks', sx, yt - end_in, yb + end_in, pr, fz1), z_plate + k['plate'] - fz1, JOIN, rk)
     ext(c, rect_sketch(c, 'neck gap', sx - 9, yc - k['gap_half'], sx + 9, yc + k['gap_half'], fz1), z_plate + k['plate'] - fz1, CUT, rk)
@@ -382,9 +422,9 @@ def build():
     ce = adsk.core.ObjectCollection.create()
     for e in sc.edges:
         g = e.geometry
-        if g.objectType == adsk.core.Circle3D.classType() and abs(g.center.z * 10 - sz0) < 1e-3:
+        if g.objectType == adsk.core.Circle3D.classType() and abs(g.center.z * 10 - z_plate) < 1e-3:
             ce.add(e)
-    chamfer(c, ce, k['sel_flange_t'] - 0.1)
+    chamfer(c, ce, k['flange_chamfer'])      # pad-facing edge: it prints pad-down, so this is the overhang
     cyl(c, 'pad', x6, y6, k['knob_d'] - 2 * k['slide_clr'], z_plate, z_top + k['pad_up'], JOIN, sc)
     fillet(c, edges_at_z(sc, z_top + k['pad_up']), k['pad_fillet_select'])
     leg_bot = k['sw6_total'] + k['sel_leg_gap']
@@ -404,22 +444,26 @@ def build_cover(root, occs, Ly, z_rim):
     yb, yt = Ly['cav_bot'], Ly['cav_top']
     body = box(c, 'Back cover', -hw, Ly['y_bot_out'], hw, Ly['y_top_out'], Ly['z_cov0'], z_rim)
     fillet(c, vertical_edges(body), k['r_corner'])
-    fillet(c, edges_at_z(body, Ly['z_cov0']), k['front_fillet'])
+    chamfer(c, edges_at_z(body, Ly['z_cov0']), k['bed_chamfer'])
     ext(c, rect_sketch(c, 'cover cavity', -cw, yb, cw, yt, z_in), z_rim - z_in, CUT, body)
+    round_cavity(c, body, cw, yb, yt, Ly['cav_r'], z_in, z_rim)
 
     # alignment lip inside the front shell wall (sides + bottom end; none at the top end, the battery crosses the split).
     # A ledge below the rim carries it, because the cover cavity is as wide as the shell cavity.
     # The TP4056 drops in from the open side, so the lip is also interrupted over its bay (+X side below tp_y1, bottom end right of the stop).
     tx0, ty0, ty1 = Ly['tp_x0'], Ly['tp_y0'], Ly['tp_y1']
     lo = cw - k['lip_clr']; li = lo - k['lip_t']
-    y0 = yb + k['lip_clr']; y1 = yt - k['lip_clr']
+    cr = Ly['cav_r']                      # the shell's rounded corners start cr from each end: the strips stop there
+    y0 = yb + cr; y1 = yt - cr
+    ch = k['lip_clr'] + k['lip_t']        # ledge protrusion = chamfer distance: the underside slopes at 45 deg
     for s in (-1, 1):
         ys = y0 if s < 0 else ty1 + k['tp_clr']
-        box(c, 'lip ledge', min(s * li, s * (cw + 0.5)), ys - (0.5 if s < 0 else 0.0), max(s * li, s * (cw + 0.5)), y1, z_rim - k['lip_h'], z_rim, JOIN, body)
+        sloped_ledge(c, body, min(s * li, s * (cw + 0.5)), ys, max(s * li, s * (cw + 0.5)), y1, z_rim - k['lip_h'], z_rim, 'y', s * li, ch)
         box(c, 'lip', min(s * li, s * lo), ys, max(s * li, s * lo), y1, z_rim, z_rim + k['lip_h'], JOIN, body)
     xb = tx0 - k['tp_clr']
-    box(c, 'lip ledge bottom', -cw - 0.5, yb - 0.5, xb, y0 + k['lip_t'], z_rim - k['lip_h'], z_rim, JOIN, body)
-    box(c, 'lip bottom', -lo, y0, xb, y0 + k['lip_t'], z_rim, z_rim + k['lip_h'], JOIN, body)
+    ybl = yb + k['lip_clr']
+    sloped_ledge(c, body, -(cw - cr), yb - 0.5, xb, ybl + k['lip_t'], z_rim - k['lip_h'], z_rim, 'x', ybl + k['lip_t'], ch)
+    box(c, 'lip bottom', -(cw - cr), ybl, xb, ybl + k['lip_t'], z_rim, z_rim + k['lip_h'], JOIN, body)
 
     # screw posts at the perfboard holes: M2 x 10 from the back clamp the perfboard against the front bosses
     ix = k['pcb_w'] / 2 - k['pcb_hole_inset']; iy = k['pcb_h'] / 2 - k['pcb_hole_inset']
@@ -432,14 +476,17 @@ def build_cover(root, occs, Ly, z_rim):
     # battery bay: rib mirrors the one in the front shell, side stops keep the cell centred
     rib_x = k['pcb_w'] / 2 + k['side_clr']
     box(c, 'battery rib', -rib_x, Ly['y_rib0'], rib_x, Ly['y_rib0'] + k['bay_rib'], z_in, z_rim, JOIN, body)
+    box(c, 'battery rib foot', -rib_x, Ly['y_rib0'] - k['rib_foot_w'], rib_x, Ly['y_rib0'], z_in, z_in + k['rib_foot_h'], JOIN, body)
     sx0 = k['bat'][0] / 2 + k['bat_clr']
     for s in (-1, 1):
         box(c, 'battery stop', min(s * sx0, s * (sx0 + k['bat_stop_t'])), Ly['y_bat0'], max(s * sx0, s * (sx0 + k['bat_stop_t'])),
             Ly['y_bat1'], z_in, z_in + k['bat_stop_h'], JOIN, body)
 
     # TP4056 bay: stop at the -X end, retaining rib on the board side, USB-C opening through the +X wall
-    box(c, 'tp stop', tx0 - 0.2 - 1.0, ty0, tx0 - 0.2, ty1, z_in, z_in + k['tp_stop_h'], JOIN, body)
-    box(c, 'tp retainer', tx0 + 2.0, ty1 + 0.1, tx0 + 14.0, ty1 + 0.9, z_in, z_in + k['tp_stop_h'], JOIN, body)
+    box(c, 'tp stop', tx0 - 0.2 - k['tp_stop_t'], ty0, tx0 - 0.2, ty1, z_in, z_in + k['tp_stop_h'], JOIN, body)
+    box(c, 'tp retainer', tx0 + 2.0, ty1 + 0.1, tx0 + 14.0, ty1 + 0.1 + k['tp_ret_t'], z_in, z_in + k['tp_stop_h'], JOIN, body)
+    # the module sits 2 mm from the bottom wall (round corner), so a block on the wall side keeps it from leaning that way
+    box(c, 'tp wall retainer', tx0 + 2.0, yb - 0.5, tx0 + 14.0, ty0 - k['tp_clr'], z_in, z_in + k['tp_stop_h'], JOIN, body)
     uy = (ty0 + k['tp_pcb_t'] + ty1) / 2
     ow = k['tp_usb_w'] + 2 * k['usb_open_clr']; oh = (ty1 - ty0 - k['tp_pcb_t']) + 2 * k['usb_open_clr']
     zc = Ly['tp_zc']

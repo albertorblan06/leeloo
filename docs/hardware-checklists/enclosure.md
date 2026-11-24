@@ -22,6 +22,10 @@ Parts: `hardware/enclosure/front_shell.stl`, `back_cover.stl`, `rocker.stl`, `se
 - [ ] SELECT cap: clicks the switch, returns, and does not catch in the guide tube.
 - [ ] Neither button rattles when the shell is shaken (`slide_clr` is now 0.08 mm per side).
 - [ ] SELECT reads released at rest (multimeter or firmware). `sel_leg_gap` is only 0.05 mm, below the ±0.3 mm switch-height tolerance: if it reads pressed, raise it.
+- [ ] First print without supports: the bed-side chamfers are clean; the rocker flange and SELECT flange undersides and the cover's lip ledge print without sagging or stringing.
+- [ ] Rocker and SELECT still slide and return with the new chamfered flanges; SELECT still stops against the plate (its retaining ring is now about 0.5 mm).
+- [ ] The 1.35 mm lip enters the front shell without force; the rounded cavity corners (r = 2.0) don't interfere with the PCB, the battery or the TP4056.
+- [ ] TP4056 doesn't lean toward the bottom wall (wall-side retainer) and its USB-C stays aligned with the opening. A PCB longer than 28.0 mm won't fit: it sits flush against the +X wall.
 - [ ] Filament colours: shell black, rocker white, SELECT red.
 - [ ] Front edge of the shell feels smooth; the buttons stand proud and feel right (2.5 mm).
 

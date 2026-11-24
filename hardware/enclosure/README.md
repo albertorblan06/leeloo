@@ -1,6 +1,6 @@
 # Leeloo enclosure (front shell + back cover)
 
-Size: **62.6 × 94.4 mm**, 40.4 mm thick closed (front 16.8 + back 23.6; the back cover's lip adds 2 mm inside the front shell). The width keeps the old 55.2 : 83.2 ratio; the length grows at the top for the battery bay (+9.85 mm) and at the bottom for the TP4056 bay (+1.35 mm). Both are computed in `layout()` from `D`.
+Size: **64.4 × 97.1 mm**, 40.4 mm thick closed (front 16.8 + back 23.6; the back cover's lip adds 2 mm inside the front shell). The width keeps the old 55.2 : 83.2 ratio; the length grows at the top for the battery bay (+10.85 mm) and at the bottom for the TP4056 bay (+3.05 mm: the cavity corners are rounded, so the module needs 2 mm to the wall). Both are computed in `layout()` from `D`.
 
 Files:
 
@@ -12,7 +12,7 @@ Files:
 | `select_cap.stl` | SELECT / accept cap (Ø18) | Pad on the bed, legs up. No supports. **Red.** |
 | `build_enclosure.py` | Fusion script that generates everything above (`D` holds all dimensions) | |
 
-Slicer: PLA or PETG, 0.4 mm nozzle, 0.2 mm layers, 3 walls, 20–30 % infill, no supports, no brim needed.
+Slicer: PLA or PETG, 0.4 mm nozzle, **0.45 mm line width**, 0.2 mm layers, 3 walls, 20–30 % infill, no supports, no brim needed.
 Print the two caps at 100 % scale. `slide_clr` is **0.08 mm per side** (0.15 wobbled): if a cap binds, raise it in `D`, re-run the script and re-export. The rocker ends keep the old 0.15 mm (`rocker_end_clr`) because tilting moves its neck ~0.13 mm along Y (0.08 bound at ±2°). `sel_leg_gap` is only **0.05 mm**, less than the ±0.3 mm switch-height tolerance: if SELECT reads pressed at rest, raise it.
 
 ## Hardware needed
@@ -25,7 +25,7 @@ Print the two caps at 100 % scale. `slide_clr` is **0.08 mm per side** (0.15 wob
 - **OLED:** clamped between the four bosses and the screw heads, so it has no play. Its PCB underside sits **10.6 mm** above the perfboard (was 12.0: at 12.0 the header pins only half engaged).
 - **Rocker:** its flange sits on a fulcrum rib and is guided by two rails; the legs rest on the two 12×12 switch actuators. Pressing one end rolls it on the rib edge (checked free for ±3°, the switches need about ±1.9°).
 - **SELECT cap:** flange guided by a tube; leg 0.2 mm above the 6×6 actuator; the switch spring returns it against the plate.
-- **Look and feel:** the buttons stand 2.5 mm proud of the plate, with a 1.0 mm (rocker) / 1.2 mm (SELECT) fillet on the top edge. The front-face perimeter of the shell has a 0.8 mm fillet; the open rim stays square for the back half.
+- **Look and feel:** the buttons stand 2.5 mm proud of the plate, with a 1.0 mm (rocker) / 1.2 mm (SELECT) fillet on the top edge. The face of each half that lies on the bed has a 0.8 mm 45° chamfer (a fillet would sag); the open rim stays square for the back half.
 - FDM can't give literally zero clearance: the buttons slide with 0.15 mm per side and long guides, so they don't wobble.
 
 ## Assumptions to check before printing (not caliper-measured)
@@ -40,7 +40,20 @@ Print the two caps at 100 % scale. `slide_clr` is **0.08 mm per side** (0.15 wob
 
 - Perfboard clearance is 0.6 mm per side (`side_clr`) after 0.3 mm was too tight. Since the case is wider now, nothing locates the perfboard sideways except the four screws; the battery rib stops at x ±25.6 so cables can pass on both sides.
 - TP4056 estimates: PCB thickness 1.2 mm, USB-C receptacle 7.3 mm long × 9.0 mm wide, USB-C flush with the inner wall and centred on the 17.5 mm edge. The opening is 9.6 × 3.55 mm with a 13 × 7.5 × 1.0 mm outer recess for the plug overmold; the wall is thinner there because the corner is rounded. Measure the real receptacle and edit `tp_*`.
+- Ribs: the battery-bay rib is 2.0 mm thick with a stepped foot (1.5 × 3.0 mm) on its board side, the battery stops 2.0 mm, the TP4056 stop 2.0 mm and its retainers 1.35 mm (they were 0.8–1.0 mm and would snap); a second retainer on the wall side keeps the module from leaning toward the wall. No fillet on the battery side: the cell has only 0.3 mm of clearance there.
 - The battery sits about 8 mm from the ESP32-S3 PCB antenna (top end): expect some Wi-Fi range loss (see the checklist).
 - The screw posts are modelled at the perfboard holes; the ESP32 itself is held only by its headers (no rest on the back cover yet). No power switch, regulator or cable routing between the bays is modelled.
 
 Fit checklist: `docs/hardware-checklists/enclosure.md`.
+
+## Design for printing (no supports)
+Thin walls are whole multiples of the 0.45 mm line width: 1.35 mm (3 lines) for the lip, rails, fulcrum rib, SELECT tube and TP retainers. The 2.0 mm walls are left to the slicer (4.4 lines). Cavity corners are rounded (r = 2.0, concentric with the outer r = 4) so the wall is 2.0 mm in the corners instead of 1.17.
+
+| Part (orientation) | Overhang and how it is handled |
+|---|---|
+| Front shell (plate down) | Everything grows upward. The bed-side edge has a 0.8 mm 45° chamfer. |
+| Back cover (floor down) | 0.8 mm chamfer on the floor edge. The alignment lip stands on a ledge whose underside slopes at 45° (no flat overhang). The counterbore ceiling is a 4.2 mm bridge. |
+| Rocker (pad down) | The flange is a stadium (no corner overhang) with a 1.0 mm 45° chamfer on the pad-facing perimeter: about 1 mm flat + 1 mm slope left, and 1.2 mm of straight edge to guide it. |
+| SELECT cap (pad down) | 1.0 mm 45° chamfer on the pad-facing edge of the flange: about 0.6 mm flat + 1 mm slope; 0.8 mm straight edge; the ring that stops it against the plate is about 0.5 mm. |
+
+Left as they are: the pad fillets (they sit on the bed and sag a little), the OLED bosses (1.1 mm walls, Ø4.2 around a Ø2.0 pilot) and the screw posts (1.1 mm wall around the counterbore: a thicker post would enter the top wire keep-out).
