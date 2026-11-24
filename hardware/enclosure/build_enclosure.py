@@ -51,12 +51,25 @@ D = dict(
     slot_w=12.0, knob_d=18.0,
     rocker_top_trim=2.3,                      # rocker/slot top end pulled down so it clears the lowered OLED PCB (edge at y -1.95)
     # buttons
-    slide_clr=0.15,                           # per side, sliding fit on an FDM printer
+    slide_clr=0.08,                           # per side, sliding fit on an FDM printer (0.15 wobbled; raise it if the buttons bind)
+    rocker_end_clr=0.15,                      # rocker ends only (old clearance): tilting moves the neck ~0.13 mm along Y at the plate, 0.08 bound at +-2 deg
     pad_up=2.5,                               # how far the pads stand proud of the plate (console style)
     pad_fillet_rocker=1.0, pad_fillet_select=1.2,
     flange_w=16.0, flange_t=2.2, leg_d=6.0, gap_half=1.5,
     rail_t=1.2, rail_h=3.5, rib_t=1.2, rib_h=0.8,
-    sel_flange_d=21.0, sel_flange_t=1.8, sel_leg_d=6.0, sel_leg_gap=0.2, tube_wall=1.2,
+    # sel_leg_gap 0.05 is below the +-0.3 switch-height tolerance: if SELECT reads pressed at rest, raise it
+    sel_flange_d=21.0, sel_flange_t=1.8, sel_leg_d=6.0, sel_leg_gap=0.05, tube_wall=1.2,
+    # back half. Battery on edge at the top end, TP4056 on edge at the bottom end; the case width follows the old aspect ratio.
+    bat=(46.0, 8.25, 36.6),                   # X, Y, Z of the LiPo (user-supplied box; the checklist still names a smaller cell)
+    bat_clr=0.3, bay_rib=1.0,                 # clearance around the battery; rib between the board and the battery bay
+    bat_stop_t=1.0, bat_stop_h=15.0,          # side stops that keep the battery centred in X
+    tp=(28.0, 4.15, 17.5),                    # TP4056 X, Y (USB-C included), Z: measured with calipers
+    tp_pcb_t=1.2, tp_usb_len=7.3, tp_usb_w=9.0,   # estimates: PCB thickness, USB-C receptacle length (X) and width (Z)
+    tp_clr=0.3, tp_stop_h=8.0,                # gap to the wall and to the screw posts; height of the stop and the retaining rib
+    usb_open_clr=0.3,                         # per side around the receptacle in the wall
+    usb_recess_w=13.0, usb_recess_h=7.5, usb_recess_d=1.0,   # outer pocket for the plug overmold
+    floor_t=1.6, lip_h=2.0, lip_t=1.0, lip_clr=0.15,         # back cover floor and alignment lip
+    post_d=6.4, post_hole_d=2.4, post_cb_d=4.2, post_top=4.0,   # screw posts: M2 x 10, 4 mm of post above the counterbore
 )
 
 
@@ -114,6 +127,17 @@ def box(c, name, x0, y0, x1, y1, z0, z1, op=NEW, target=None):
     return None
 
 
+def cut_box(c, body, x0, y0, x1, y1, z0, z1):
+    """Cut a box out of `body` (a tool body in the XY-based frame avoids the YZ/XZ sketch axis mapping)."""
+    tool = box(c, 'cut tool', x0, y0, x1, y1, z0, z1)
+    tools = adsk.core.ObjectCollection.create()
+    tools.add(tool)
+    ci = c.features.combineFeatures.createInput(body, tools)
+    ci.operation = CUT
+    ci.isKeepToolBodies = False
+    c.features.combineFeatures.add(ci)
+
+
 def cyl(c, name, cx, cy, d, z0, z1, op=NEW, target=None):
     f = ext(c, circles_sketch(c, name, [(cx, cy)], d, z0), z1 - z0, op, target)
     if op == NEW:
@@ -144,6 +168,45 @@ def fillet(c, edges, r):
     fi = c.features.filletFeatures.createInput()
     fi.addConstantRadiusEdgeSet(edges, VI.createByReal(r / 10.0), True)
     c.features.filletFeatures.add(fi)
+
+
+def vertical_edges(body):
+    out = adsk.core.ObjectCollection.create()
+    for e in body.edges:
+        g = e.geometry
+        if g.objectType == adsk.core.Line3D.classType():
+            dv = g.startPoint.vectorTo(g.endPoint)
+            if abs(abs(dv.z) - dv.length) < 1e-6:
+                out.add(e)
+    return out
+
+
+def layout(k, z_plate):
+    """Derived outline shared by both halves (mm). Y grows at the top for the battery, at the bottom for the TP4056."""
+    w = k['wall']
+    y_rib0 = k['pcb_h'] / 2 + k['wire_out'] + k['side_clr']          # old cavity end
+    y_bat0 = y_rib0 + k['bay_rib'] + k['bat_clr']
+    y_bat1 = y_bat0 + k['bat'][1]
+    cav_top = y_bat1 + k['bat_clr']
+    post_y = k['pcb_h'] / 2 - k['pcb_hole_inset'] + k['post_d'] / 2   # the bottom posts end here
+    tp_y1 = -post_y - k['tp_clr']
+    tp_y0 = tp_y1 - k['tp'][1]
+    cav_bot = tp_y0 - k['tp_clr']
+    length = (cav_top + w) - (cav_bot - w)
+    ratio = (k['pcb_w'] + 2 * (k['side_clr'] + w)) / (k['pcb_h'] + 2 * (k['wire_out'] + k['side_clr'] + w))
+    cw = length * ratio / 2 - w
+    z_bat1 = z_plate - k['bat_clr']
+    z_bat0 = z_bat1 - k['bat'][2]
+    z_in = z_bat0 - k['bat_clr']                                       # inner floor of the back cover
+    tp_x1 = cw                                                         # USB-C receptacle flush with the inner wall
+    assert k['bat'][0] / 2 + k['bat_clr'] + k['bat_stop_t'] <= cw, 'battery stops do not fit the width'
+    assert tp_x1 - k['tp'][0] > -cw + 2.0, 'TP4056 does not fit the width'
+    return dict(
+        hw=cw + w, cw=cw, y_rib0=y_rib0, y_bat0=y_bat0, y_bat1=y_bat1, cav_top=cav_top, cav_bot=cav_bot,
+        y_top_out=cav_top + w, y_bot_out=cav_bot - w, length=length,
+        z_bat0=z_bat0, z_bat1=z_bat1, z_in=z_in, z_cov0=z_in - k['floor_t'],
+        tp_x1=tp_x1, tp_x0=tp_x1 - k['tp'][0], tp_y0=tp_y0, tp_y1=tp_y1, tp_zc=z_in + k['tp'][2] / 2,
+    )
 
 
 def chamfer(c, edges, d):
@@ -186,6 +249,8 @@ def build():
     box(c, 'OLED male header', -5.08, h / 2 - 1.35 - 1.27, 5.08, h / 2 - 1.35 + 1.27, -k['mheader_h'], 0)
     oled_top_pcb_z = k['oled_z'] + t
     glass_top_z = oled_top_pcb_z + k['glass_t']
+    z_plate = glass_top_z + k['clr'] + 0.1          # underside of the front plate
+    Ly = layout(k, z_plate)
 
     for i, (x, y) in enumerate(k['sw12_pos']):
         o = new_comp(root, 'Tact_12x12_%d' % (i + 1), x, y, 0); c = o.component; occs['T12_%d' % i] = o
@@ -214,28 +279,30 @@ def build():
     box(c, 'Wire top', -20, ye, 20.4, ye + k['wire_out'], -2.5, 2.5)
     box(c, 'Wire bottom', -11, -ye - k['wire_out'], -6, -ye, -2.5, 2.5)
 
+    # battery (on edge, top end) and TP4056 (on edge, bottom end, USB-C towards +X)
+    o = new_comp(root, 'Battery'); c = o.component; occs['Battery'] = o
+    box(c, 'Battery', -k['bat'][0] / 2, Ly['y_bat0'], k['bat'][0] / 2, Ly['y_bat1'], Ly['z_bat0'], Ly['z_bat1'])
+    o = new_comp(root, 'TP4056'); c = o.component; occs['TP4056'] = o
+    tz0 = Ly['z_in']; tz1 = tz0 + k['tp'][2]
+    box(c, 'TP4056 PCB', Ly['tp_x0'], Ly['tp_y0'], Ly['tp_x1'], Ly['tp_y0'] + k['tp_pcb_t'], tz0, tz1)
+    box(c, 'TP4056 USB-C', Ly['tp_x1'] - k['tp_usb_len'], Ly['tp_y0'] + k['tp_pcb_t'], Ly['tp_x1'], Ly['tp_y1'],
+        Ly['tp_zc'] - k['tp_usb_w'] / 2, Ly['tp_zc'] + k['tp_usb_w'] / 2)
+
     # ---- front shell ----
     o = new_comp(root, 'FrontShell'); c = o.component; occs['Shell'] = o
-    hw = k['pcb_w'] / 2 + k['side_clr'] + k['wall']
-    hh = k['pcb_h'] / 2 + k['wire_out'] + k['side_clr'] + k['wall']
+    hw = Ly['hw']; cw = Ly['cw']
     z_bot = -k['pcb_t']
-    z_plate = glass_top_z + k['clr'] + 0.1          # underside of the front plate
     z_top = z_plate + k['plate']
-    sk = rect_sketch(c, 'shell outer', -hw, -hh, hw, hh, z_bot)
+    sk = rect_sketch(c, 'shell outer', -hw, Ly['y_bot_out'], hw, Ly['y_top_out'], z_bot)
     body = ext(c, sk, z_top - z_bot, NEW).bodies.item(0)
     body.name = 'Front shell'
-    edges = adsk.core.ObjectCollection.create()
-    for e in body.edges:
-        g = e.geometry
-        if g.objectType == adsk.core.Line3D.classType():
-            dv = g.startPoint.vectorTo(g.endPoint)
-            if abs(abs(dv.z) - dv.length) < 1e-6:
-                edges.add(e)
-    fillet(c, edges, k['r_corner'])
+    fillet(c, vertical_edges(body), k['r_corner'])
     fillet(c, edges_at_z(body, z_top), k['front_fillet'])     # soften the front-face perimeter
 
-    cw = k['pcb_w'] / 2 + k['side_clr']; ch = k['pcb_h'] / 2 + k['wire_out'] + k['side_clr']
-    ext(c, rect_sketch(c, 'shell cavity', -cw, -ch, cw, ch, z_bot), z_plate - z_bot, CUT, body)
+    ext(c, rect_sketch(c, 'shell cavity', -cw, Ly['cav_bot'], cw, Ly['cav_top'], z_bot), z_plate - z_bot, CUT, body)
+    # rib that closes the board side of the battery bay; it stops short of the walls so cables can pass at both sides
+    rib_x = k['pcb_w'] / 2 + k['side_clr']
+    box(c, 'battery rib', -rib_x, Ly['y_rib0'], rib_x, Ly['y_rib0'] + k['bay_rib'], z_bot, z_plate, JOIN, body)
 
     # plate cutouts
     sk = c.sketches.add(plane_at(c, z_plate)); sk.name = 'plate cutouts'
@@ -288,7 +355,8 @@ def build():
     o = new_comp(root, 'Rocker'); c = o.component; occs['Rocker'] = o
     fz0 = z_plate - k['rib_h'] - k['flange_t']          # flange sits on the fulcrum crest
     fz1 = fz0 + k['flange_t']
-    plen_lo = yb - (r - k['slide_clr']); plen_hi = yt + (r - k['slide_clr'])
+    end_in = k['rocker_end_clr'] - k['slide_clr']      # pull the rocker ends in without loosening its sides
+    plen_lo = yb + end_in - (r - k['slide_clr']); plen_hi = yt - end_in + (r - k['slide_clr'])
     rk = box(c, 'Rocker', sx - k['flange_w'] / 2, plen_lo, sx + k['flange_w'] / 2, plen_hi, fz0, fz1)
     ce = adsk.core.ObjectCollection.create()
     for e in rk.edges:
@@ -300,9 +368,9 @@ def build():
             ce.add(e)
     chamfer(c, ce, k['flange_t'] - 0.1)
     pr = r - k['slide_clr']
-    ext(c, stadium_sketch(c, 'necks', sx, yt, yb, pr, fz1), z_plate + k['plate'] - fz1, JOIN, rk)
+    ext(c, stadium_sketch(c, 'necks', sx, yt - end_in, yb + end_in, pr, fz1), z_plate + k['plate'] - fz1, JOIN, rk)
     ext(c, rect_sketch(c, 'neck gap', sx - 9, yc - k['gap_half'], sx + 9, yc + k['gap_half'], fz1), z_plate + k['plate'] - fz1, CUT, rk)
-    ext(c, stadium_sketch(c, 'pad', sx, yt, yb, pr, z_top), k['pad_up'], JOIN, rk)
+    ext(c, stadium_sketch(c, 'pad', sx, yt - end_in, yb + end_in, pr, z_top), k['pad_up'], JOIN, rk)
     fillet(c, edges_at_z(rk, z_top + k['pad_up']), k['pad_fillet_rocker'])
     leg_z0 = k['sw12_total']
     ext(c, circles_sketch(c, 'legs', [(sx, ya), (sx, yb)], k['leg_d'], leg_z0), fz0 - leg_z0, JOIN, rk)
@@ -322,14 +390,70 @@ def build():
     leg_bot = k['sw6_total'] + k['sel_leg_gap']
     cyl(c, 'leg', x6, y6, k['sel_leg_d'], leg_bot, sz0, JOIN, sc)
 
+    build_cover(root, occs, Ly, z_bot)
+
     apply_colours(d, occs)
     return d, occs, dict(z_plate=z_plate, z_top=z_top, fz0=fz0, fz1=fz1, yc=yc, sx=sx)
+
+
+def build_cover(root, occs, Ly, z_rim):
+    """Back half: floor, walls, alignment lip, 4 screw posts, battery bay, TP4056 bay with the USB-C opening."""
+    k = D
+    o = new_comp(root, 'BackCover'); c = o.component; occs['Cover'] = o
+    hw, cw, z_in = Ly['hw'], Ly['cw'], Ly['z_in']
+    yb, yt = Ly['cav_bot'], Ly['cav_top']
+    body = box(c, 'Back cover', -hw, Ly['y_bot_out'], hw, Ly['y_top_out'], Ly['z_cov0'], z_rim)
+    fillet(c, vertical_edges(body), k['r_corner'])
+    fillet(c, edges_at_z(body, Ly['z_cov0']), k['front_fillet'])
+    ext(c, rect_sketch(c, 'cover cavity', -cw, yb, cw, yt, z_in), z_rim - z_in, CUT, body)
+
+    # alignment lip inside the front shell wall (sides + bottom end; none at the top end, the battery crosses the split).
+    # A ledge below the rim carries it, because the cover cavity is as wide as the shell cavity.
+    # The TP4056 drops in from the open side, so the lip is also interrupted over its bay (+X side below tp_y1, bottom end right of the stop).
+    tx0, ty0, ty1 = Ly['tp_x0'], Ly['tp_y0'], Ly['tp_y1']
+    lo = cw - k['lip_clr']; li = lo - k['lip_t']
+    y0 = yb + k['lip_clr']; y1 = yt - k['lip_clr']
+    for s in (-1, 1):
+        ys = y0 if s < 0 else ty1 + k['tp_clr']
+        box(c, 'lip ledge', min(s * li, s * (cw + 0.5)), ys - (0.5 if s < 0 else 0.0), max(s * li, s * (cw + 0.5)), y1, z_rim - k['lip_h'], z_rim, JOIN, body)
+        box(c, 'lip', min(s * li, s * lo), ys, max(s * li, s * lo), y1, z_rim, z_rim + k['lip_h'], JOIN, body)
+    xb = tx0 - k['tp_clr']
+    box(c, 'lip ledge bottom', -cw - 0.5, yb - 0.5, xb, y0 + k['lip_t'], z_rim - k['lip_h'], z_rim, JOIN, body)
+    box(c, 'lip bottom', -lo, y0, xb, y0 + k['lip_t'], z_rim, z_rim + k['lip_h'], JOIN, body)
+
+    # screw posts at the perfboard holes: M2 x 10 from the back clamp the perfboard against the front bosses
+    ix = k['pcb_w'] / 2 - k['pcb_hole_inset']; iy = k['pcb_h'] / 2 - k['pcb_hole_inset']
+    pts = [(ix, iy), (-ix, iy), (ix, -iy), (-ix, -iy)]
+    ext(c, circles_sketch(c, 'posts', pts, k['post_d'], z_in), z_rim - z_in, JOIN, body)
+    ext(c, circles_sketch(c, 'post holes', pts, k['post_hole_d'], Ly['z_cov0']), z_rim - Ly['z_cov0'], CUT, body)
+    cb_top = z_rim - k['post_top']
+    ext(c, circles_sketch(c, 'post counterbores', pts, k['post_cb_d'], Ly['z_cov0']), cb_top - Ly['z_cov0'], CUT, body)
+
+    # battery bay: rib mirrors the one in the front shell, side stops keep the cell centred
+    rib_x = k['pcb_w'] / 2 + k['side_clr']
+    box(c, 'battery rib', -rib_x, Ly['y_rib0'], rib_x, Ly['y_rib0'] + k['bay_rib'], z_in, z_rim, JOIN, body)
+    sx0 = k['bat'][0] / 2 + k['bat_clr']
+    for s in (-1, 1):
+        box(c, 'battery stop', min(s * sx0, s * (sx0 + k['bat_stop_t'])), Ly['y_bat0'], max(s * sx0, s * (sx0 + k['bat_stop_t'])),
+            Ly['y_bat1'], z_in, z_in + k['bat_stop_h'], JOIN, body)
+
+    # TP4056 bay: stop at the -X end, retaining rib on the board side, USB-C opening through the +X wall
+    box(c, 'tp stop', tx0 - 0.2 - 1.0, ty0, tx0 - 0.2, ty1, z_in, z_in + k['tp_stop_h'], JOIN, body)
+    box(c, 'tp retainer', tx0 + 2.0, ty1 + 0.1, tx0 + 14.0, ty1 + 0.9, z_in, z_in + k['tp_stop_h'], JOIN, body)
+    uy = (ty0 + k['tp_pcb_t'] + ty1) / 2
+    ow = k['tp_usb_w'] + 2 * k['usb_open_clr']; oh = (ty1 - ty0 - k['tp_pcb_t']) + 2 * k['usb_open_clr']
+    zc = Ly['tp_zc']
+    cut_box(c, body, cw - 0.5, uy - oh / 2, hw + 1.0, uy + oh / 2, zc - ow / 2, zc + ow / 2)
+    cut_box(c, body, hw - k['usb_recess_d'], uy - k['usb_recess_h'] / 2, hw + 1.0, uy + k['usb_recess_h'] / 2,
+            zc - k['usb_recess_w'] / 2, zc + k['usb_recess_w'] / 2)
+    return body
 
 
 # Library appearance names depend on the Fusion UI language (Spanish first, English fallback).
 COLOURS = {
     # Escaped (backslash-u 00e1 = a with acute) so the file stays ASCII: Fusion's open() defaults to ASCII
     'Shell': ('Pl\u00e1stico - Mate (negro)', 'Plastic - Matte (Black)'),      # body: black
+    'Cover': ('Pl\u00e1stico - Mate (negro)', 'Plastic - Matte (Black)'),      # back cover: black like the shell
     'Rocker': ('Pl\u00e1stico - Mate (blanco)', 'Plastic - Matte (White)'),    # menu scroll: white
     'Select': ('Pl\u00e1stico - Mate (rojo)', 'Plastic - Matte (Red)'),        # accept: red
 }
@@ -382,16 +506,18 @@ def run(_context: str):
 
 # ---------------------------------------------------------------- print layout + STL export
 def export_stl(out_dir):
-    """Export front_shell.stl / rocker.stl / select_cap.stl, each laid out as it should print."""
+    """Export front_shell.stl / back_cover.stl / rocker.stl / select_cap.stl, each laid out as it should print."""
     app = adsk.core.Application.get()
     d = adsk.fusion.Design.cast(app.activeProduct)
     root = d.rootComponent
-    jobs = [('FrontShell', 'front_shell'), ('Rocker', 'rocker'), ('SelectCap', 'select_cap')]
+    # flip: rotate 180 deg about X so the front face / pad top lies on the bed; the back cover already prints floor-down
+    jobs = [('FrontShell', 'front_shell', True), ('BackCover', 'back_cover', False),
+            ('Rocker', 'rocker', True), ('SelectCap', 'select_cap', True)]
     em = d.exportManager
     for i in range(root.occurrences.count - 1, -1, -1):
         if root.occurrences.item(i).component.name.startswith('print_'):
             root.occurrences.item(i).deleteMe()
-    for comp_name, fname in jobs:
+    for comp_name, fname, flip in jobs:
         src = None
         for oc in root.occurrences:
             if oc.component.name == comp_name:
@@ -401,11 +527,11 @@ def export_stl(out_dir):
         opts.meshRefinement = adsk.fusion.MeshRefinementSettings.MeshRefinementHigh
         opts.sendToPrintUtility = False
         print(fname, 'exported' if em.execute(opts) else 'EXPORT FAILED')
-        orient_stl_for_print(path)
+        orient_stl_for_print(path, flip)
 
 
-def orient_stl_for_print(path):
-    """Rewrite a binary STL in place: rotate 180 deg about X (front plate / pad top face down), then sit it on z=0.
+def orient_stl_for_print(path, flip=True):
+    """Rewrite a binary STL in place: optionally rotate 180 deg about X (front plate / pad top face down), then sit it on z=0.
 
     Fusion's STL export keeps the assembly pose, so the print orientation is applied to the file instead.
     """
@@ -415,7 +541,7 @@ def orient_stl_for_print(path):
     tris = []
     for i in range(n):
         v = list(struct.unpack('<12f', data[84 + 50 * i: 84 + 50 * i + 48]))
-        for j in (0, 3, 6, 9):           # normal, v1, v2, v3
+        for j in (0, 3, 6, 9) if flip else ():           # normal, v1, v2, v3
             v[j + 1] = -v[j + 1]
             v[j + 2] = -v[j + 2]
         tris.append(v)
