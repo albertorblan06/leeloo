@@ -1,17 +1,17 @@
-# Graph Report - leeloo  (2026-11-16)
+# Graph Report - leeloo  (2026-11-24)
 
 ## Corpus Check
-- 104 files · ~51,895 words
+- 106 files · ~52,639 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 8 file(s) not represented in the graph (top: .stl 3, (none) 2, .csv 1)
 
 ## Summary
-- 1617 nodes · 3238 edges · 76 communities (70 shown, 6 thin omitted)
+- 1627 nodes · 3254 edges · 79 communities (73 shown, 6 thin omitted)
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 377 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a442e1e1`
+- Built from commit: `dd13f622`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -36,16 +36,16 @@
 - test_upload.cpp
 - Result
 - percent_decode
-- BookValidator
+- upload.cpp
 - .take
-- sanitize_name
+- Leeloo Architecture Questionnaire
 - build.mjs
 - Ui
 - rsvp_view.cpp
 - test_ui.cpp
 - test_text.cpp
 - test_settings.cpp
-- test_inactivity.cpp
+- view_model.cpp
 - storage_books.cpp
 - tasks.cpp
 - test_reader.cpp
@@ -80,13 +80,16 @@
 - UiService::UiService
 - Net
 - Log
-- INet
+- check_capacity
 - Snapshot
 - Button
+- FakeMutex
 - .frame_with
+- State
 - IMutex
 - rtos_freertos.cpp
-- IDisplayControl
+- INMP441 microphone (bring-up)
+- NetStatus
 - ViewFixture
 - Enclosure fit (front half)
 - Leeloo front enclosure (print-ready, front half only)
@@ -123,15 +126,15 @@
 - **Requirements to architecture to plan to roadmap chain** — docs_architecture_answers, docs_architecture, docs_implementation_plan, docs_roadmap [EXTRACTED 1.00]
 - **Phone to device book transfer pipeline** — docs_architecture_browser_conversion, docs_architecture_wifi_session, docs_architecture_book_format, docs_architecture_littlefs_storage, docs_architecture_rsvp_behavior [INFERRED 0.85]
 
-## Communities (76 total, 6 thin omitted)
+## Communities (79 total, 6 thin omitted)
 
 ### Community 0 - "build_enclosure.py"
 Cohesion: 0.13
 Nodes (19): apply_colours(), box(), build(), chamfer(), check(), circles_sketch(), cyl(), edges_at_z() (+11 more)
 
 ### Community 1 - "Leeloo Roadmap"
-Cohesion: 0.06
-Nodes (76): Agent Context (CONTEXT.md), Hardware purchase gated by board/display/power validation, Project State, Agent Errors and Lessons, Agent Memory (MEMORY.md), Append-only memory rule, Phase 0 scaffold (memory entry), Agent Workflow (WORKFLOW.md) (+68 more)
+Cohesion: 0.08
+Nodes (65): Agent Context (CONTEXT.md), Hardware purchase gated by board/display/power validation, Project State, Agent Errors and Lessons, Agent Memory (MEMORY.md), Append-only memory rule, Phase 0 scaffold (memory entry), Agent Workflow (WORKFLOW.md) (+57 more)
 
 ### Community 2 - "test_joystick.cpp"
 Cohesion: 0.13
@@ -155,7 +158,7 @@ Nodes (4): Behavior, Checks, Temporary input: analog joystick (replaces the 3 bu
 
 ### Community 8 - "rsvp.cpp"
 Cohesion: 0.12
-Nodes (31): BestSplit, byte, cost, letters, classify(), count_letters(), count_newlines_after(), decode_at() (+23 more)
+Nodes (33): BestSplit, byte, cost, letters, classify(), count_letters(), count_newlines_after(), decode_at() (+25 more)
 
 ### Community 9 - "NetService"
 Cohesion: 0.15
@@ -170,16 +173,16 @@ Cohesion: 0.22
 Nodes (8): Checks, Firmware notes (when implemented), Full pin summary, Mapping, Menu test (firmware on `dev`), OLED 1.3" 128x64 (I2C, 4 pins, unchanged), Temporary input: 3 push buttons (replaces the EC11 encoder), Wiring (all connections)
 
 ### Community 12 - "test_menu.cpp"
-Cohesion: 0.09
-Nodes (7): utf8_sequence_length(), Menu, count_, test_down_wraps_from_last_to_first(), test_empty_menu_ignores_input(), test_select_returns_current_index(), test_up_wraps_from_first_to_last()
+Cohesion: 0.06
+Nodes (17): utf8_sequence_length(), Menu, count_, InactivityTimer, last_ms_, limit_ms_, running_, test_activity_restarts_the_window() (+9 more)
 
 ### Community 13 - "app.js"
 Cohesion: 0.08
 Nodes (27): vitest, busy(), loadPdfjs(), show(), steps, ApiError, authenticate(), errorFromResponse() (+19 more)
 
 ### Community 14 - "upload_server.cpp"
-Cohesion: 0.12
-Nodes (19): auth_handler(), authorized(), book_name_from_request(), books_handler(), commit(), drain_body(), fail_with(), last_activity_ms() (+11 more)
+Cohesion: 0.11
+Nodes (18): auth_handler(), authorized(), book_name_from_request(), books_handler(), drain_body(), fail_with(), last_activity_ms(), make_route() (+10 more)
 
 ### Community 15 - "package.json"
 Cohesion: 0.11
@@ -194,31 +197,31 @@ Cohesion: 0.20
 Nodes (9): 1. Session lifecycle, 2. Static assets, 3.1 `POST /api/auth`, 3.2 `POST /api/books`, 3. Endpoints, 4. Limits, 5. Error body, 6. Open points (+1 more)
 
 ### Community 18 - "test_upload.cpp"
-Cohesion: 0.11
-Nodes (32): check_capacity(), test_accepts_book_exactly_at_size_limit(), test_accepts_book_with_pages(), test_accepts_header_line_at_limit(), test_accepts_minimal_valid_book(), test_accepts_spanish_multibyte_content(), test_bytewise_feed_matches_single_chunk(), test_capacity_accepts_last_free_slot() (+24 more)
+Cohesion: 0.10
+Nodes (36): sanitize_name(), test_accepts_book_exactly_at_size_limit(), test_accepts_book_with_pages(), test_accepts_header_line_at_limit(), test_accepts_minimal_valid_book(), test_accepts_spanish_multibyte_content(), test_bytewise_feed_matches_single_chunk(), test_rejects_author_before_title() (+28 more)
 
 ### Community 19 - "Result"
 Cohesion: 0.15
-Nodes (18): error_code(), has_value(), http_status(), is_pages_line(), Result, BadName, InvalidFormat, InvalidUtf8 (+10 more)
+Nodes (14): error_code(), http_status(), Result, BadName, InvalidFormat, InvalidUtf8, LibraryFull, NoSpace (+6 more)
 
 ### Community 20 - "percent_decode"
 Cohesion: 0.15
 Nodes (12): extract_pin(), hex_value(), percent_decode(), pin_matches(), test_extract_pin_reads_the_web_app_body(), test_extract_pin_rejects_malformed_bodies(), test_extract_pin_tolerates_whitespace(), test_percent_decode_decodes_utf8_escapes() (+4 more)
 
-### Community 21 - "BookValidator"
-Cohesion: 0.13
-Nodes (14): BookValidator, body_bytes_, error_, line_, line_len_, pages_seen_, state_, total_ (+6 more)
+### Community 21 - "upload.cpp"
+Cohesion: 0.11
+Nodes (18): BookValidator, body_bytes_, error_, line_, line_len_, pages_seen_, state_, total_ (+10 more)
 
 ### Community 22 - ".take"
 Cohesion: 0.15
 Nodes (17): test_book_open_failure_from_rsvp_shows_a_message(), test_book_without_start_marker_fails_and_is_released(), test_cancelled_delete_keeps_the_book(), test_changing_contrast_saves_applies_and_tells_net(), test_changing_wifi_mode_sends_the_new_mode_to_net(), test_choosing_a_book_sends_open_with_its_index(), test_confirmed_delete_removes_the_book_and_resyncs(), test_failed_delete_shows_the_error_and_keeps_the_count() (+9 more)
 
-### Community 23 - "sanitize_name"
-Cohesion: 0.12
-Nodes (15): is_forbidden_name_byte(), sanitize_name(), Utf8Checker, hi_, lo_, need_, test_sanitize_accepts_name_at_byte_limit(), test_sanitize_accepts_spanish_name() (+7 more)
+### Community 23 - "Leeloo Architecture Questionnaire"
+Cohesion: 0.18
+Nodes (11): Decisions to lock before implementation, Display and visual design, ESP32-S3 and development environment, Input and interaction, Leeloo Architecture Questionnaire, Power, time, and physical product, Product and prototype scope, Reliability, security, and development (+3 more)
 
 ### Community 25 - "Ui"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (41): Outcome, command, index, Ui, return_to_, book_label(), draw_about(), draw_brightness() (+33 more)
 
 ### Community 26 - "rsvp_view.cpp"
@@ -236,10 +239,6 @@ Nodes (22): count_chars(), is_continuation(), offset_after_chars(), scroll_start
 ### Community 29 - "test_settings.cpp"
 Cohesion: 0.07
 Nodes (32): BrightnessMode, Auto, Manual, cycle_brightness(), cycle_wifi(), display_register(), sanitize(), Settings (+24 more)
-
-### Community 30 - "test_inactivity.cpp"
-Cohesion: 0.17
-Nodes (10): InactivityTimer, last_ms_, limit_ms_, running_, test_activity_restarts_the_window(), test_does_not_expire_before_the_limit(), test_expires_exactly_at_the_limit(), test_stop_disarms_the_timer() (+2 more)
 
 ### Community 31 - "storage_books.cpp"
 Cohesion: 0.14
@@ -274,7 +273,7 @@ Cohesion: 0.07
 Nodes (16): FakeClock, now_, FakeQueue, capacity_, item_size_, items_, IQueue, Queue (+8 more)
 
 ### Community 39 - "app_adapters.cpp"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (7): GpioPins, NvsSettings, SerialLog, SoftAp, pin_, StorageLibrary, text_
 
 ### Community 40 - "Wi-Fi soft AP and book upload"
@@ -306,12 +305,12 @@ Cohesion: 0.12
 Nodes (21): test_boot_failure_with_wifi_on_is_logged(), test_boot_with_automatico_keeps_the_ap_off(), test_boot_with_wifi_on_starts_the_ap(), test_bounce_that_returns_to_idle_posts_nothing(), test_deferred_stop_sets_the_wait_to_the_remaining_time(), test_ignores_edge_with_button_index_out_of_range(), test_inactivity_check_survives_a_32_bit_clock_wrap(), test_inactivity_ends_an_automatico_session_and_tells_the_ui() (+13 more)
 
 ### Community 49 - "InputService"
-Cohesion: 0.09
-Nodes (15): ButtonState, debouncer, pressed_at, InputService, InputService::InputService(), log_, pins_, settling_ (+7 more)
+Cohesion: 0.11
+Nodes (13): ButtonState, debouncer, pressed_at, InputService, log_, pins_, settling_, states_ (+5 more)
 
 ### Community 50 - "Event"
-Cohesion: 0.10
-Nodes (19): Event, Back, BookOpenFailed, DeleteFailed, Down, Left, ReaderFinished, Right (+11 more)
+Cohesion: 0.11
+Nodes (16): InputService::InputService(), NetService::NetService(), Event, Back, BookOpenFailed, DeleteFailed, Down, Left (+8 more)
 
 ### Community 51 - "Library"
 Cohesion: 0.10
@@ -326,16 +325,16 @@ Cohesion: 0.16
 Nodes (10): ILog, post(), UiService, display_, library_, log_, net_out_, rsvp_out_ (+2 more)
 
 ### Community 54 - "ViewModel"
-Cohesion: 0.16
-Nodes (8): update(), ViewModel, display_, mutex_, state_, version_, DisplayContrast, view_
+Cohesion: 0.25
+Nodes (7): ViewModel, display_, mutex_, state_, version_, DisplayContrast, view_
 
 ### Community 55 - "RsvpFixture"
-Cohesion: 0.17
-Nodes (8): Chan, port, q, RsvpFixture, lib, log, svc, ui
+Cohesion: 0.11
+Nodes (13): Chan, port, q, NetFixture, log, net, svc, ui (+5 more)
 
 ### Community 56 - "UiFixture"
-Cohesion: 0.22
-Nodes (8): UiFixture, display, lib, log, net, rsvp, store, svc
+Cohesion: 0.08
+Nodes (18): IPins, DisplayControl, calls, last, Pins, level, SettingsStore, last (+10 more)
 
 ### Community 57 - "RsvpService"
 Cohesion: 0.16
@@ -358,44 +357,60 @@ Cohesion: 0.50
 Nodes (3): format_pin(), test_format_pin_pads_with_zeros(), test_format_pin_wraps_modulo_ten_thousand()
 
 ### Community 63 - "UiService::UiService"
-Cohesion: 0.18
-Nodes (6): ISettingsStore, UiService::UiService(), SettingsStore, last, ok, saves
+Cohesion: 0.22
+Nodes (3): IDisplayControl, ISettingsStore, UiService::UiService()
 
 ### Community 64 - "Net"
-Cohesion: 0.17
-Nodes (7): Net, is_running, last_activity, marks, start_ok, starts, stops
+Cohesion: 0.11
+Nodes (8): INet, Net, is_running, last_activity, marks, start_ok, starts, stops
 
 ### Community 65 - "Log"
 Cohesion: 0.25
 Nodes (5): Log, lines, test_logs_the_drop_when_the_ui_queue_is_full(), test_save_failure_is_logged_not_ignored(), test_settings_save_failure_is_logged_and_still_applied()
 
+### Community 66 - "check_capacity"
+Cohesion: 0.29
+Nodes (7): check_capacity(), test_capacity_accepts_last_free_slot(), test_capacity_does_not_overflow_with_huge_book(), test_capacity_ok_with_room(), test_capacity_rejects_full_library(), test_capacity_rejects_when_free_below_reserve(), test_capacity_rejects_when_reserve_would_be_used()
+
 ### Community 67 - "Snapshot"
-Cohesion: 0.20
-Nodes (9): NetStatus, pin, running, Snapshot, contrast, contrast_pending, frame, net (+1 more)
+Cohesion: 0.22
+Nodes (6): Snapshot, contrast, contrast_pending, frame, net, ui
 
 ### Community 68 - "Button"
 Cohesion: 0.50
 Nodes (4): Button, kDown, kSelect, kUp
 
+### Community 69 - "FakeMutex"
+Cohesion: 0.40
+Nodes (3): FakeMutex, depth, locks
+
 ### Community 70 - ".frame_with"
 Cohesion: 0.33
 Nodes (7): test_contrast_request_is_handed_over_once(), test_each_publish_wakes_the_display_outside_the_lock(), test_latest_publish_wins_when_the_display_is_slow(), test_producers_do_not_overwrite_each_others_part(), test_published_state_is_delivered_once(), test_read_balances_the_lock(), test_view_has_nothing_to_read_before_the_first_publish()
+
+### Community 71 - "State"
+Cohesion: 0.40
+Nodes (5): State, Author, Body, PagesOrStart, Title
 
 ### Community 72 - "IMutex"
 Cohesion: 0.43
 Nodes (3): IMutex, ScopedLock, mutex_
 
 ### Community 73 - "rtos_freertos.cpp"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (10): IClock, Clock, Mutex, handle_, Queue, handle_, item_size_, TaskNotifier (+2 more)
 
-### Community 75 - "IDisplayControl"
-Cohesion: 0.20
-Nodes (6): IDisplayControl, DisplayControl, calls, last, Pins, level
+### Community 74 - "INMP441 microphone (bring-up)"
+Cohesion: 0.50
+Nodes (3): Checklist, INMP441 microphone (bring-up), Wiring
+
+### Community 75 - "NetStatus"
+Cohesion: 0.50
+Nodes (3): NetStatus, pin, running
 
 ### Community 77 - "ViewFixture"
-Cohesion: 0.17
-Nodes (9): FakeMutex, depth, locks, ViewFixture, display, mutex, seen, snap (+1 more)
+Cohesion: 0.29
+Nodes (6): ViewFixture, display, mutex, seen, snap, view
 
 ### Community 79 - "Enclosure fit (front half)"
 Cohesion: 0.40
@@ -407,7 +422,7 @@ Nodes (4): Assumptions to check before printing (not caliper-measured), Hardware
 
 ## Knowledge Gaps
 - **299 isolated node(s):** `debouncer`, `pressed_at`, `pins_`, `ui_out_`, `log_` (+294 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 648 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 654 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
@@ -422,8 +437,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `Screen` connect `Screen` to `test_ui.cpp`, `Ui`, `cstdint`, `.take`?**
   _High betweenness centrality (0.040) - this node is a cross-community bridge._
 - **Should `Leeloo Roadmap` be split into smaller, more focused modules?**
-  _Cohesion score 0.06134371957156767 - nodes in this community are weakly interconnected._
-- **Why does `Event` connect `Event` to `INet`, `NetService`, `App`, `cstdint`, `InputService`, `InputFixture`, `UiService`, `.take`, `RsvpFixture`, `RsvpService`, `ILibrary`, `test_ui.cpp`, `Ui`?**
+  _Cohesion score 0.0781387181738367 - nodes in this community are weakly interconnected._
+- **Why does `Event` connect `Event` to `NetService`, `App`, `cstdint`, `InputService`, `InputFixture`, `UiService`, `.take`, `RsvpFixture`, `RsvpService`, `ILibrary`, `test_ui.cpp`, `Ui`?**
   _High betweenness centrality (0.039) - this node is a cross-community bridge._
 - **Should `test_joystick.cpp` be split into smaller, more focused modules?**
   _Cohesion score 0.13043478260869565 - nodes in this community are weakly interconnected._
