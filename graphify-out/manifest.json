@@ -618,21 +618,21 @@
     "semantic_hash": ""
   },
   "hardware/enclosure/build_enclosure.py": {
-    "mtime": 1794855813.956062,
-    "seen": 1794855825.683991,
-    "ast_hash": "475832d860be2b237c67826e9935cebb",
+    "mtime": 1795544877.6737032,
+    "seen": 1795544900.261173,
+    "ast_hash": "ec9d9f586ffa5787efac7f3bc0f4dc52",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/enclosure.md": {
-    "mtime": 1794855813.9570076,
-    "seen": 1794855825.6840801,
-    "ast_hash": "d634df481a5847cfceaafa3828bc4627",
+    "mtime": 1795544898.786661,
+    "seen": 1795544900.261259,
+    "ast_hash": "8e8332d38c17a6f5d9b358af264743ff",
     "semantic_hash": ""
   },
   "hardware/enclosure/README.md": {
-    "mtime": 1794855813.9566855,
-    "seen": 1794855825.684085,
-    "ast_hash": "0eb3f82526ad1fdf14771557dd7ac3a5",
+    "mtime": 1795544898.7834456,
+    "seen": 1795544900.2612648,
+    "ast_hash": "8e12a0da702ffe07f07d7be5cd359e2b",
     "semantic_hash": ""
   },
   "tools/mic_test/main.cpp": {
@@ -645,6 +645,12 @@
     "mtime": 1795541100.0606756,
     "seen": 1795541101.521358,
     "ast_hash": "99891b6cfbbd736f575f1059f9a7d967",
+    "semantic_hash": ""
+  },
+  "docs/hardware-checklists/battery-tp4056.md": {
+    "mtime": 1795543084.344627,
+    "seen": 1795544738.272785,
+    "ast_hash": "51664db06d49a062ba13a958828539b7",
     "semantic_hash": ""
   }
 }
