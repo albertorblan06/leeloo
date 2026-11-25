@@ -18,8 +18,16 @@ Battery: 3.7 V 500 mAh LiPo (EEMB 403048). Module: TP4056 USB-C with dual protec
 - [ ] IN+/IN- reads ~5 V.
 - [ ] Charge current measured in series on B+ (mA range): ____ mA. Factory R_prog `122` (1.2 k) gives ~1 A = 2C for this cell; replace with 4.7-5 k for ~250 mA (I[mA] = 1200 / R[k]).
 - [ ] Battery and TP4056 chip temperature checked during charge (battery must stay at most warm).
-- [ ] LED turns green/blue; resting voltage after unplugging reads 4.15-4.20 V.
+- [x] Charge finished: TP4056 LED went off, resting voltage 4.14 V after unplugging (2026-11-24).
 - [ ] OUT+/OUT- reads the same as B+/B- with the battery charged and USB unplugged.
+
+## Result: battery direct to the devkit 5V pin does NOT work
+
+- [x] OUT+ to 5V pin, OUT- to GND: red power LED on, OLED stays off.
+- [x] 3V3 pin measured 2.47 V (below the ~2.43 V brownout threshold of the ESP32-S3; OLED not powered). The devkit regulator needs ~4.5 V+ in; the battery gives ~4.1 V (and less as it discharges), possibly minus a diode on the 5V pin.
+- Not tried: measuring the 5V pin under load (to see whether the devkit has a diode in that path).
+- Decision: a boost to 5 V (MT3608 set to exactly 5.0 V BEFORE connecting the ESP32, +100-470 uF at its output) into the 5V pin, or a low-dropout 3.3 V LDO (MCP1700-3.3, HT7333, AP2112K-3.3; not AMS1117, not XC6206) into 3V3 with the ESP32 USB unplugged. Parts not owned yet; keep developing on USB power meanwhile.
+- Do not: feed 3V3 directly from the battery (4.2 V > 3.6 V max), or drop voltage with series diodes (only works with a full battery).
 
 ## Next
 
