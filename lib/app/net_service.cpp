@@ -21,14 +21,19 @@ void NetService::end_upload_session() {
   auto_session_ = false;
   timer_.stop();
   stop_at_ms_ = 0;
+  recording_session_ = false;
   if (applied_wifi_ != settings::WifiMode::On) net_->stop();
 }
 
-void NetService::start_upload(std::uint32_t now_ms) {
+void NetService::start_upload(std::uint32_t now_ms, bool recording) {
   stop_at_ms_ = 0;  // a deferred stop from an earlier save must not end this session
+  recording_session_ = recording;
   if (!net_->running() && !net_->start()) {
     if (log_ != nullptr) log_->log("Wi-Fi: no se pudo iniciar");
-    post(ui_out_, ui::Event::UploadStartFailed, log_, "Cola de UI llena: se pierde UploadStartFailed");
+    const ui::Event failed = recording ? ui::Event::AudioUploadStartFailed
+                                       : ui::Event::UploadStartFailed;
+    recording_session_ = false;
+    post(ui_out_, failed, log_, "Cola de UI llena: se pierde el error de inicio Wi-Fi");
     return;
   }
   auto_session_ = applied_wifi_ == settings::WifiMode::Auto;
@@ -50,7 +55,11 @@ void NetService::handle(const NetMsg& msg, std::uint32_t now_ms) {
     case NetCmd::StartUpload:
       start_upload(now_ms);
       return;
+    case NetCmd::StartRecordingUpload:
+      start_upload(now_ms, true);
+      return;
     case NetCmd::StopUpload:
+    case NetCmd::StopRecordingUpload:
       end_upload_session();
       return;
     case NetCmd::ApplyWifi:
@@ -66,6 +75,9 @@ void NetService::handle(const NetMsg& msg, std::uint32_t now_ms) {
       // Only a save made from the upload screen schedules the stop; otherwise the session is already over.
       if (applied_wifi_ != settings::WifiMode::On) stop_at_ms_ = now_ms + kStopAfterSaveMs;
       return;
+    case NetCmd::RecordingTransferred:
+      if (applied_wifi_ != settings::WifiMode::On) stop_at_ms_ = now_ms + kStopAfterSaveMs;
+      return;
   }
 }
 
@@ -79,8 +91,10 @@ void NetService::on_timeout(std::uint32_t now_ms) {
   timer_.touch(net_->last_activity_ms());
   if (timer_.expired(now_ms)) {
     if (log_ != nullptr) log_->log("Wi-Fi: sesión cerrada por inactividad");
+    const ui::Event timed_out = recording_session_ ? ui::Event::AudioUploadTimedOut
+                                                   : ui::Event::UploadTimedOut;
     end_upload_session();
-    post(ui_out_, ui::Event::UploadTimedOut, log_, "Cola de UI llena: se pierde UploadTimedOut");
+    post(ui_out_, timed_out, log_, "Cola de UI llena: se pierde el aviso de inactividad Wi-Fi");
   }
 }
 

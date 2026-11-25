@@ -12,6 +12,7 @@
 #include <new>
 
 #include "app_adapters.h"
+#include "audio_recorder.h"
 #include "display_ui.h"
 #include "input_service.h"
 #include "messages.h"
@@ -20,6 +21,7 @@
 #include "rsvp_service.h"
 #include "rtos_freertos.h"
 #include "storage_books.h"
+#include "storage_recording.h"
 #include "ui_service.h"
 #include "upload_server.h"
 #include "view_model.h"
@@ -44,6 +46,7 @@ constexpr UBaseType_t kRsvpPriority = 5;
 constexpr UBaseType_t kInputPriority = 4;
 constexpr UBaseType_t kUiPriority = 3;
 constexpr UBaseType_t kDisplayPriority = 2;
+constexpr UBaseType_t kRecorderPriority = 2;
 constexpr UBaseType_t kNetPriority = 2;
 
 constexpr BaseType_t kUiCore = 1;
@@ -55,6 +58,7 @@ constexpr std::uint32_t kInputStack = 4096;
 constexpr std::uint32_t kRsvpStack = 6144;
 constexpr std::uint32_t kUiStack = 6144;
 constexpr std::uint32_t kDisplayStack = 6144;
+constexpr std::uint32_t kRecorderStack = 6144;
 constexpr std::uint32_t kNetStack = 8192;
 
 // Every task wakes at least this often to feed the watchdog, even with nothing to do.
@@ -66,6 +70,7 @@ constexpr std::size_t kEdgeQueueLength = 16;
 constexpr std::size_t kUiQueueLength = 16;
 constexpr std::size_t kRsvpQueueLength = 8;
 constexpr std::size_t kNetQueueLength = 8;
+constexpr std::size_t kRecordingQueueLength = 4;
 
 static_assert(pins::kButtonCount == app::kButtonCount, "one pin per button");
 
@@ -76,10 +81,12 @@ struct App {
   rtos::freertos::Queue ui_port{kUiQueueLength, sizeof(Event)};
   rtos::freertos::Queue rsvp_port{kRsvpQueueLength, sizeof(RsvpMsg)};
   rtos::freertos::Queue net_port{kNetQueueLength, sizeof(NetMsg)};
+  rtos::freertos::Queue recording_port{kRecordingQueueLength, sizeof(app::RecordingMsg)};
   rtos::Queue<RawEdge> edges{&edge_port};
   rtos::Queue<Event> ui_events{&ui_port};
   rtos::Queue<RsvpMsg> rsvp_cmds{&rsvp_port};
   rtos::Queue<NetMsg> net_cmds{&net_port};
+  rtos::Queue<app::RecordingMsg> recording_cmds{&recording_port};
 
   // What the display draws: written by UI, RSVP and net, read by the display task.
   rtos::freertos::Mutex view_mutex;
@@ -97,12 +104,15 @@ struct App {
   app::RsvpService rsvp{&library, &ui_events, display::piece_count, &log};
   app::NetService net{&ap, &ui_events, &log};
   app::UiService ui;
+  audio_recorder::Recorder recorder;
 
   explicit App(const settings::Settings& boot)
-      : ui(boot, &library, &settings_store, &contrast, &rsvp_cmds, &net_cmds, &log) {}
+      : ui(boot, &library, &settings_store, &contrast, &rsvp_cmds, &net_cmds, &recording_cmds, &log),
+        recorder(&ui_events, &view, &log) {}
 
   bool ok() const {
-    return edge_port.ok() && ui_port.ok() && rsvp_port.ok() && net_port.ok() && view_mutex.ok();
+    return edge_port.ok() && ui_port.ok() && rsvp_port.ok() && net_port.ok() &&
+           recording_port.ok() && view_mutex.ok();
   }
 };
 
@@ -136,6 +146,17 @@ void IRAM_ATTR on_button_edge(void* arg) {
 void on_book_saved() {
   if (!g_app->ui_events.send(Event::UploadSaved, app::kPostTimeoutMs)) {
     g_app->log.log("Cola de UI llena: se pierde UploadSaved");
+  }
+}
+
+void on_recording_transferred() {
+  if (!g_app->ui_events.send(Event::AudioTransferred, app::kPostTimeoutMs)) {
+    g_app->log.log("Cola de UI llena: se pierde AudioTransferred");
+  }
+  if (!g_app->net_cmds.send(NetMsg{app::NetCmd::RecordingTransferred,
+                                   settings::WifiMode::Auto, false},
+                            app::kPostTimeoutMs)) {
+    g_app->log.log("Cola de red llena: se pierde RecordingTransferred");
   }
 }
 
@@ -203,6 +224,20 @@ void net_task(void*) {
   }
 }
 
+void recording_task(void*) {
+  supervise();
+  g_app->recorder.begin();
+  for (;;) {
+    feed();
+    app::RecordingMsg msg;
+    if (g_app->recording_cmds.receive(&msg,
+                                      capped(g_app->recorder.poll_interval_ms()))) {
+      g_app->recorder.handle(msg);
+    }
+    g_app->recorder.poll();
+  }
+}
+
 // The only task that touches the I2C bus and the frame buffer.
 void display_task(void*) {
   supervise();
@@ -218,6 +253,7 @@ void display_task(void*) {
     if (snap.ui.screen() == ui::Screen::About) status.free_bytes = storage::free_bytes();
     status.ap_running = snap.net.running;
     status.pin = snap.net.pin;
+    status.recording = snap.recording;
     display::render(snap.ui, status, snap.frame);
   }
 }
@@ -244,10 +280,12 @@ void start(const settings::Settings& boot) {
   g_app->display_wake.set_task(spawn(display_task, "display", kDisplayStack, kDisplayPriority, kUiCore));
   spawn(ui_task, "ui", kUiStack, kUiPriority, kUiCore);
   spawn(rsvp_task, "rsvp", kRsvpStack, kRsvpPriority, kUiCore);
+  spawn(recording_task, "recording", kRecorderStack, kRecorderPriority, kUiCore);
   spawn(net_task, "net", kNetStack, kNetPriority, kNetCore);
   spawn(input_task, "input", kInputStack, kInputPriority, kUiCore);
 
   upload_server::set_on_saved(on_book_saved);
+  upload_server::set_on_recording_transferred(on_recording_transferred);
   g_app->net_cmds.send(NetMsg{app::NetCmd::Boot, boot.wifi, false}, app::kPostTimeoutMs);
 
   for (const std::uint8_t pin : pins::kButtonPins) pinMode(pin, INPUT_PULLUP);

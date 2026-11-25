@@ -27,6 +27,7 @@ void tearDown() {}
 static_assert(std::is_trivially_copyable<RawEdge>::value, "queued as bytes");
 static_assert(std::is_trivially_copyable<RsvpMsg>::value, "queued as bytes");
 static_assert(std::is_trivially_copyable<NetMsg>::value, "queued as bytes");
+static_assert(std::is_trivially_copyable<RecordingMsg>::value, "queued as bytes");
 static_assert(std::is_trivially_copyable<ReadingFrame>::value, "published as bytes");
 
 namespace {
@@ -592,6 +593,16 @@ void test_inactivity_ends_an_automatico_session_and_tells_the_ui() {
   TEST_ASSERT_EQUAL((int)Event::UploadTimedOut, (int)e);
 }
 
+void test_recording_upload_timeout_reports_the_audio_session() {
+  NetFixture fx;
+  fx.cmd(NetCmd::Boot, 0, WifiMode::Auto);
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  fx.svc.on_timeout(kLimit);
+  Event e;
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_EQUAL((int)Event::AudioUploadTimedOut, (int)e);
+}
+
 void test_phone_activity_keeps_the_session_alive() {
   NetFixture fx;
   fx.cmd(NetCmd::Boot, 0, WifiMode::Auto);
@@ -623,6 +634,17 @@ void test_save_on_upload_screen_stops_the_ap_after_the_grace_time() {
   fx.svc.on_timeout(100 + NetService::kStopAfterSaveMs);
   TEST_ASSERT_FALSE(fx.net.is_running);
   TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms(2000));
+}
+
+void test_recording_transfer_stops_auto_ap_after_grace_period() {
+  NetFixture fx;
+  fx.cmd(NetCmd::Boot, 0, WifiMode::Auto);
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  fx.cmd(NetCmd::RecordingTransferred, 100);
+  fx.svc.on_timeout(100 + NetService::kStopAfterSaveMs - 1);
+  TEST_ASSERT_TRUE(fx.net.is_running);
+  fx.svc.on_timeout(100 + NetService::kStopAfterSaveMs);
+  TEST_ASSERT_FALSE(fx.net.is_running);
 }
 
 void test_save_with_wifi_on_schedules_no_stop() {
@@ -682,6 +704,7 @@ namespace {
 struct UiFixture {
   Chan<RsvpMsg> rsvp;
   Chan<NetMsg> net;
+  Chan<RecordingMsg> recording;
   Library lib;
   SettingsStore store;
   DisplayControl display;
@@ -689,11 +712,13 @@ struct UiFixture {
   UiService svc;
   explicit UiFixture(std::size_t net_capacity = 8)
       : net(net_capacity),
-        svc(leeloo::settings::Settings{}, &lib, &store, &display, &rsvp.q, &net.q, &log) {
+        svc(leeloo::settings::Settings{}, &lib, &store, &display, &rsvp.q, &net.q,
+            &recording.q, &log) {
     svc.sync_books();
   }
   UiFixture(std::size_t net_capacity, const leeloo::settings::Settings& initial)
-      : net(net_capacity), svc(initial, &lib, &store, &display, &rsvp.q, &net.q, &log) {
+      : net(net_capacity),
+        svc(initial, &lib, &store, &display, &rsvp.q, &net.q, &recording.q, &log) {
     svc.sync_books();
   }
   void press(Event e) { svc.handle(e); }
@@ -834,6 +859,37 @@ void test_save_elsewhere_does_not_touch_net_but_refreshes_the_count() {
   TEST_ASSERT_EQUAL_UINT32(5, fx.svc.model().book_count());
 }
 
+void test_recording_commands_are_forwarded_to_the_recorder_queue() {
+  UiFixture fx;
+  fx.presses({Event::Down, Event::Down, Event::Select, Event::Select});
+  RecordingMsg m;
+  TEST_ASSERT_TRUE(fx.recording.take(&m));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::Start, (int)m.cmd);
+  fx.press(Event::Select);
+  TEST_ASSERT_TRUE(fx.recording.take(&m));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::Pause, (int)m.cmd);
+  fx.press(Event::RecordingPaused);
+  fx.press(Event::Select);
+  TEST_ASSERT_TRUE(fx.recording.take(&m));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::Resume, (int)m.cmd);
+}
+
+void test_audio_delete_and_transfer_commands_reach_storage_and_net_services() {
+  UiFixture fx;
+  fx.press(Event::AudioAvailable);
+  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Select,
+              Event::Down, Event::Select});
+  RecordingMsg rec;
+  TEST_ASSERT_TRUE(fx.recording.take(&rec));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::Delete, (int)rec.cmd);
+  fx.press(Event::AudioDeleted);
+  fx.press(Event::Select);
+  fx.press(Event::Select);
+  NetMsg net;
+  TEST_ASSERT_TRUE(fx.net.take(&net));
+  TEST_ASSERT_EQUAL((int)NetCmd::StartRecordingUpload, (int)net.cmd);
+}
+
 void test_confirmed_delete_removes_the_book_and_resyncs() {
   UiFixture fx;
   // Biblioteca > Borrar > first book > Borrar
@@ -863,8 +919,8 @@ void test_failed_delete_shows_the_error_and_keeps_the_count() {
 void test_changing_contrast_saves_applies_and_tells_net() {
   UiFixture fx;
   // Ajustes > Contraste > edit > one step down
-  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Select, Event::Select,
-              Event::Down});
+  fx.presses({Event::Down, Event::Down, Event::Down, Event::Select, Event::Down, Event::Select,
+              Event::Select, Event::Down});
   TEST_ASSERT_EQUAL(1, fx.store.saves);
   TEST_ASSERT_EQUAL_UINT8(95, fx.store.last.contrast_percent);
   TEST_ASSERT_EQUAL_UINT8(leeloo::settings::display_register(100, 95), fx.display.last);
@@ -876,7 +932,7 @@ void test_changing_contrast_saves_applies_and_tells_net() {
 
 void test_changing_reading_step_persists_the_new_increment() {
   UiFixture fx;
-  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Down,
+  fx.presses({Event::Down, Event::Down, Event::Down, Event::Select, Event::Down, Event::Down,
               Event::Down, Event::Select, Event::Select, Event::Up});
   TEST_ASSERT_EQUAL(1, fx.store.saves);
   TEST_ASSERT_EQUAL_UINT16(50, fx.store.last.reading_step_ppm);
@@ -886,7 +942,7 @@ void test_changing_reading_step_persists_the_new_increment() {
 void test_changing_wifi_mode_sends_the_new_mode_to_net() {
   UiFixture fx;
   // Ajustes > Wi-Fi > edit > next mode
-  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Down, Event::Select,
+  fx.presses({Event::Down, Event::Down, Event::Down, Event::Select, Event::Down, Event::Down, Event::Select,
               Event::Select, Event::Up});
   NetMsg m;
   TEST_ASSERT_TRUE(fx.net.take(&m));
@@ -897,8 +953,8 @@ void test_changing_wifi_mode_sends_the_new_mode_to_net() {
 void test_settings_save_failure_is_logged_and_still_applied() {
   UiFixture fx;
   fx.store.ok = false;
-  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Select, Event::Select,
-              Event::Down});
+  fx.presses({Event::Down, Event::Down, Event::Down, Event::Select, Event::Down, Event::Select,
+              Event::Select, Event::Down});
   TEST_ASSERT_TRUE(fx.log.has("Ajustes"));
   TEST_ASSERT_EQUAL(1, fx.display.calls);
 }
@@ -943,6 +999,23 @@ void test_published_state_is_delivered_once() {
   TEST_ASSERT_TRUE(fx.read());
   TEST_ASSERT_EQUAL_STRING("hola", fx.snap.frame.word);
   TEST_ASSERT_FALSE(fx.read());  // nothing new since the last read
+}
+
+void test_recording_status_is_published_without_overwriting_other_state() {
+  ViewFixture fx;
+  RecordingFrame recording;
+  recording.active = true;
+  recording.paused = true;
+  recording.elapsed_seconds = 42;
+  recording.max_seconds = 120;
+  recording.sample_rate = 8000;
+  fx.view.publish_recording(recording);
+  TEST_ASSERT_TRUE(fx.read());
+  TEST_ASSERT_TRUE(fx.snap.recording.active);
+  TEST_ASSERT_TRUE(fx.snap.recording.paused);
+  TEST_ASSERT_EQUAL_UINT32(42, fx.snap.recording.elapsed_seconds);
+  TEST_ASSERT_EQUAL_UINT32(8000, fx.snap.recording.sample_rate);
+  TEST_ASSERT_FALSE(fx.snap.frame.active);
 }
 
 void test_latest_publish_wins_when_the_display_is_slow() {

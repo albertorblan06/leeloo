@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ApiError, authenticate, errorFromResponse, errorMessage, uploadBook } from '../src/api.js';
+import {
+  acknowledgeRecording, ApiError, authenticate, errorFromResponse, errorMessage,
+  fetchRecording, uploadBook,
+} from '../src/api.js';
 
 class FakeXhr {
   constructor() {
@@ -33,13 +36,14 @@ const xhrFactory = () => new FakeXhr();
 describe('errorMessage', () => {
   it('returns a Spanish message for every contract error code', () => {
     for (const code of ['invalid_pin', 'unauthorized', 'session_closed', 'bad_name', 'library_full',
-      'too_large', 'invalid_utf8', 'invalid_format', 'no_space', 'storage_error', 'network', 'aborted']) {
+      'too_large', 'invalid_utf8', 'invalid_format', 'no_space', 'storage_error', 'network', 'aborted',
+      'no_recording', 'invalid_audio', 'busy']) {
       expect(errorMessage(code)).not.toMatch(/desconocido/i);
     }
   });
 
   it('falls back to a generic message for an unknown code', () => {
-    expect(errorMessage('weird')).toMatch(/desconocido/i);
+    expect(errorMessage('weird')).toMatch(/operación/i);
   });
 });
 
@@ -78,6 +82,53 @@ describe('authenticate', () => {
   it('maps a failed connection to the network error', async () => {
     const fetchFn = vi.fn().mockRejectedValue(new TypeError('fail'));
     await expect(authenticate('1234', fetchFn)).rejects.toMatchObject({ code: 'network' });
+  });
+});
+
+describe('fetchRecording', () => {
+  it('receives the complete WAV as a Blob', async () => {
+    const blob = new Blob([new Uint8Array(44)], { type: 'audio/wav' });
+    const fetchFn = vi.fn().mockResolvedValue({ ok: true, blob: async () => blob });
+    await expect(fetchRecording({ fetchFn })).resolves.toBe(blob);
+    expect(fetchFn).toHaveBeenCalledWith('/api/recording', { signal: undefined });
+  });
+
+  it('rejects a response that is not a WAV payload', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(['not wav'], { type: 'text/plain' }),
+    });
+    await expect(fetchRecording({ fetchFn })).rejects.toMatchObject({ code: 'invalid_audio' });
+  });
+
+  it('reports an unavailable recording from the device', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false, status: 404, text: async () => '{"error":"no_recording"}',
+    });
+    await expect(fetchRecording({ fetchFn })).rejects.toMatchObject({
+      code: 'no_recording', status: 404,
+    });
+  });
+});
+
+describe('acknowledgeRecording', () => {
+  it('confirms receipt and requests deletion from the device', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ deleted: true }),
+    });
+    await expect(acknowledgeRecording({ fetchFn })).resolves.toEqual({ deleted: true });
+    expect(fetchFn).toHaveBeenCalledWith('/api/recording/ack', {
+      method: 'POST', signal: undefined,
+    });
+  });
+
+  it('does not report success when the device cannot delete the recording', async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: false, status: 500, text: async () => '{"error":"storage_error"}',
+    });
+    await expect(acknowledgeRecording({ fetchFn })).rejects.toMatchObject({
+      code: 'storage_error', status: 500,
+    });
   });
 });
 

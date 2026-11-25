@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "reading_frame.h"
+#include "recording_frame.h"
 #include "rtos.h"
 #include "settings.h"
 #include "ui.h"
@@ -21,6 +22,7 @@ struct Snapshot {
   ui::Ui ui{settings::Settings{}};
   NetStatus net;
   ReadingFrame frame;
+  RecordingFrame recording;
   // Contrast is written to the panel by the display task only, since it owns the I2C bus.
   bool contrast_pending = false;
   std::uint8_t contrast = 0;
@@ -36,6 +38,7 @@ class ViewModel {
 
   void publish_ui(const ui::Ui& ui);
   void publish_frame(const ReadingFrame& frame);
+  void publish_recording(const RecordingFrame& recording);
   void publish_net(const NetStatus& net);
   void request_contrast(std::uint8_t register_value);
 

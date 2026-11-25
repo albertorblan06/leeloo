@@ -53,6 +53,7 @@ const char* error_code(Result r) {
     case Result::NoSpace: return "no_space";
     case Result::StorageError: return "storage_error";
     case Result::Unauthorized: return "unauthorized";
+    case Result::Busy: return "busy";
   }
   return "";
 }
@@ -68,6 +69,7 @@ int http_status(Result r) {
     case Result::NoSpace: return 507;
     case Result::StorageError: return 500;
     case Result::Unauthorized: return 401;
+    case Result::Busy: return 409;
   }
   return 500;
 }

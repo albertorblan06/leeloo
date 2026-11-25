@@ -4,13 +4,15 @@ namespace leeloo::app {
 
 UiService::UiService(const settings::Settings& initial, ILibrary* library, ISettingsStore* store,
                      IDisplayControl* display, rtos::Queue<RsvpMsg>* rsvp_out,
-                     rtos::Queue<NetMsg>* net_out, ILog* log)
+                     rtos::Queue<NetMsg>* net_out, rtos::Queue<RecordingMsg>* recording_out,
+                     ILog* log)
     : ui_(initial),
       library_(library),
       store_(store),
       display_(display),
       rsvp_out_(rsvp_out),
       net_out_(net_out),
+      recording_out_(recording_out),
       log_(log) {}
 
 void UiService::sync_books() {
@@ -40,6 +42,10 @@ void UiService::execute(const ui::Outcome& out) {
   const auto to_net = [this](NetCmd cmd) {
     post(net_out_, NetMsg{cmd, settings::WifiMode::Auto, false}, log_,
          "Cola de red llena: se pierde una orden");
+  };
+  const auto to_recording = [this](RecordingCmd cmd) {
+    post(recording_out_, RecordingMsg{cmd}, log_,
+         "Cola de grabación llena: se pierde una orden");
   };
 
   switch (out.command) {
@@ -74,6 +80,30 @@ void UiService::execute(const ui::Outcome& out) {
     case ui::Command::StopUpload:
       to_net(NetCmd::StopUpload);
       return;
+    case ui::Command::StartRecording:
+      to_recording(RecordingCmd::Start);
+      return;
+    case ui::Command::PauseRecording:
+      to_recording(RecordingCmd::Pause);
+      return;
+    case ui::Command::ResumeRecording:
+      to_recording(RecordingCmd::Resume);
+      return;
+    case ui::Command::StopRecording:
+      to_recording(RecordingCmd::Stop);
+      return;
+    case ui::Command::DeleteRecording:
+      to_recording(RecordingCmd::Delete);
+      return;
+    case ui::Command::StartRecordingUpload:
+      to_net(NetCmd::StartRecordingUpload);
+      return;
+    case ui::Command::StopRecordingUpload:
+      to_net(NetCmd::StopRecordingUpload);
+      return;
+    case ui::Command::RecordingTransferred:
+      to_net(NetCmd::RecordingTransferred);
+      return;
     case ui::Command::DeleteBook:
       if (!library_->remove_at(out.index)) handle(ui::Event::DeleteFailed);
       sync_books();
@@ -82,7 +112,9 @@ void UiService::execute(const ui::Outcome& out) {
       const settings::Settings& s = ui_.settings();
       if (!store_->save(s) && log_ != nullptr) log_->log("Ajustes: no se pudo guardar");
       display_->set_contrast(settings::display_register(s.brightness_percent, s.contrast_percent));
-      post(net_out_, NetMsg{NetCmd::ApplyWifi, s.wifi, ui_.screen() == ui::Screen::Upload}, log_,
+      const bool wifi_screen_open = ui_.screen() == ui::Screen::Upload ||
+                                    ui_.screen() == ui::Screen::RecordingUpload;
+      post(net_out_, NetMsg{NetCmd::ApplyWifi, s.wifi, wifi_screen_open}, log_,
            "Cola de red llena: se pierde ApplyWifi");
       return;
     }

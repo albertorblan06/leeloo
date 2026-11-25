@@ -13,6 +13,10 @@ void ViewModel::publish_frame(const ReadingFrame& frame) {
   update([&frame](Snapshot& s) { s.frame = frame; });
 }
 
+void ViewModel::publish_recording(const RecordingFrame& recording) {
+  update([&recording](Snapshot& s) { s.recording = recording; });
+}
+
 void ViewModel::publish_net(const NetStatus& net) {
   update([&net](Snapshot& s) { s.net = net; });
 }

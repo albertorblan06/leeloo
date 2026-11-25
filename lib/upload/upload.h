@@ -30,6 +30,7 @@ enum class Result {
   NoSpace,
   StorageError,  // the temp-file write or the final rename failed
   Unauthorized,  // missing or unknown session cookie
+  Busy,          // another long-running LittleFS mutation is active
 };
 
 // Error code string and HTTP status from docs/WEB-API.md §3.2. Ok maps to

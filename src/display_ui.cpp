@@ -135,6 +135,16 @@ const char* message_line1(leeloo::ui::Message m) {
     case leeloo::ui::Message::UploadSaved: return "Libro guardado.";
     case leeloo::ui::Message::UploadTimedOut: return "Carga cerrada";
     case leeloo::ui::Message::DeleteFailed: return "No se pudo borrar.";
+    case leeloo::ui::Message::AudioStartFailed: return "No se pudo grabar.";
+    case leeloo::ui::Message::AudioBusy: return "Almacenamiento ocupado.";
+    case leeloo::ui::Message::AudioSaveFailed: return "Error guardando WAV.";
+    case leeloo::ui::Message::AudioNoSpace: return "Sin espacio libre.";
+    case leeloo::ui::Message::AudioSaved: return "Audio guardado.";
+    case leeloo::ui::Message::AudioDeleted: return "Audio borrado.";
+    case leeloo::ui::Message::AudioDeleteFailed: return "No se pudo borrar.";
+    case leeloo::ui::Message::AudioTransferred: return "Audio recibido.";
+    case leeloo::ui::Message::AudioUploadStartFailed: return "No se pudo iniciar";
+    case leeloo::ui::Message::AudioUploadTimedOut: return "Wi-Fi cerrado";
     case leeloo::ui::Message::BookOpenFailed: return "No se pudo abrir";
     case leeloo::ui::Message::None: break;
   }
@@ -148,6 +158,16 @@ const char* message_line2(leeloo::ui::Message m) {
     case leeloo::ui::Message::UploadSaved: return "";
     case leeloo::ui::Message::UploadTimedOut: return "por inactividad.";
     case leeloo::ui::Message::DeleteFailed: return "El libro se conserva.";
+    case leeloo::ui::Message::AudioStartFailed: return "Revisa microfono.";
+    case leeloo::ui::Message::AudioBusy: return "Reintenta al terminar.";
+    case leeloo::ui::Message::AudioSaveFailed: return "El WAV no se guardo.";
+    case leeloo::ui::Message::AudioNoSpace: return "Libera almacenamiento.";
+    case leeloo::ui::Message::AudioSaved: return "Elige Subir o borrar.";
+    case leeloo::ui::Message::AudioDeleted: return "";
+    case leeloo::ui::Message::AudioDeleteFailed: return "El audio se conserva.";
+    case leeloo::ui::Message::AudioTransferred: return "WAV borrado del equipo.";
+    case leeloo::ui::Message::AudioUploadStartFailed: return "el Wi-Fi.";
+    case leeloo::ui::Message::AudioUploadTimedOut: return "por inactividad.";
     case leeloo::ui::Message::BookOpenFailed: return "el libro.";
     case leeloo::ui::Message::None: break;
   }
@@ -308,17 +328,80 @@ void draw_wifi_setting(const leeloo::ui::Ui& ui) {
 }
 
 void draw_root(const leeloo::ui::Ui& ui) {
-  static const char* const kItems[] = {"Leer", "Biblioteca", "Ajustes", "Info"};
-  for (int slot = 0; slot < 4; ++slot) {
+  static const char* const kItems[] = {"Leer", "Biblioteca", "Grabar", "Ajustes", "Info"};
+  g_list_start = leeloo::text::scroll_start(g_list_start, ui.cursor(), 5, kVisibleRows);
+  for (std::size_t slot = 0; slot < kVisibleRows && g_list_start + slot < 5; ++slot) {
     const int y = kRootRowY[slot];
-    if (static_cast<std::size_t>(slot) == ui.cursor()) {
+    const std::size_t i = g_list_start + slot;
+    if (i == ui.cursor()) {
       u8g2.drawBox(0, y - 1, kRowWidth, 12);
       u8g2.setDrawColor(0);
     }
-    u8g2.drawUTF8(4, y, kItems[slot]);
+    u8g2.drawUTF8(4, y, kItems[i]);
     u8g2.drawUTF8(117, y, ">");
     u8g2.setDrawColor(1);
   }
+}
+
+void draw_record_menu(const Status& status, const leeloo::ui::Ui& ui) {
+  draw_title("GRABAR");
+  if (!status.storage_ok) {
+    draw_line(0, "Almacenamiento");
+    draw_line(1, "no disponible");
+    draw_back_row(3, ui.cursor() == 0);
+    return;
+  }
+  if (status.recording.available) {
+    draw_row(0, "Subir audio", ">", ui.cursor() == 0);
+    draw_row(1, "Borrar audio", ">", ui.cursor() == 1);
+    draw_line(2, "WAV pendiente");
+    draw_back_row(3, ui.cursor() == 2);
+  } else {
+    draw_row(0, "Grabar", ">", ui.cursor() == 0);
+    draw_line(1, "Hasta 2 minutos");
+    draw_back_row(3, ui.cursor() == 1);
+  }
+}
+
+void draw_recording(const Status& status, const leeloo::ui::Ui& ui) {
+  const leeloo::app::RecordingFrame& recording = status.recording;
+  draw_title(recording.paused ? "GRABACION PAUSADA" : "GRABANDO");
+  draw_row(0, recording.paused ? "Reanudar" : "Pausar", ">", ui.cursor() == 0);
+  draw_row(1, "Detener", ">", ui.cursor() == 1);
+  char elapsed[24];
+  std::snprintf(elapsed, sizeof elapsed, "%02lu / %02lu s",
+                static_cast<unsigned long>(recording.elapsed_seconds),
+                static_cast<unsigned long>(recording.max_seconds));
+  draw_line(2, elapsed);
+  char rate[24];
+  std::snprintf(rate, sizeof rate, "%lu Hz mono",
+                static_cast<unsigned long>(recording.sample_rate));
+  draw_line(3, rate);
+}
+
+void draw_recording_upload(const Status& status, const leeloo::ui::Ui& ui) {
+  draw_title("SUBIR AUDIO");
+  if (!status.ap_running) {
+    draw_starting();
+  } else {
+    char pin_line[24];
+    std::snprintf(pin_line, sizeof pin_line, "PIN: %s", status.pin);
+    char address_line[32];
+    std::snprintf(address_line, sizeof address_line, "Dir: %s",
+                  leeloo::upload_server::kAddress);
+    draw_line(0, leeloo::upload_server::kSsid);
+    draw_line(1, pin_line);
+    draw_line(2, address_line);
+  }
+  draw_back_row(3, ui.cursor() == 0);
+}
+
+void draw_recording_delete_confirm(const leeloo::ui::Ui& ui) {
+  draw_title("BORRAR AUDIO");
+  draw_line(0, "¿Borrar el WAV?");
+  draw_line(1, "No se puede recuperar.");
+  draw_row(2, "Cancelar", nullptr, ui.cursor() == 0);
+  draw_row(3, "Borrar", nullptr, ui.cursor() == 1);
 }
 
 void draw_manage(const leeloo::ui::Ui& ui) {
@@ -425,6 +508,10 @@ static void draw_screen(const leeloo::ui::Ui& ui, const Status& status, const le
     case Screen::ReadEnd: draw_read_end(ui); break;
     case Screen::Manage: draw_manage(ui); break;
     case Screen::Upload: draw_upload(status); break;
+    case Screen::RecordMenu: draw_record_menu(status, ui); break;
+    case Screen::Recording: draw_recording(status, ui); break;
+    case Screen::RecordingUpload: draw_recording_upload(status, ui); break;
+    case Screen::RecordingDeleteConfirm: draw_recording_delete_confirm(ui); break;
     case Screen::DeleteList: draw_delete_list(ui); break;
     case Screen::DeleteConfirm: draw_delete_confirm(ui); break;
     case Screen::Settings: draw_settings(ui); break;
@@ -443,9 +530,13 @@ bool is_back_transition(Screen from, Screen to) {
     case Screen::Manage:
     case Screen::Settings:
     case Screen::About:
+    case Screen::RecordMenu:
       return to == Screen::Root;
     case Screen::Upload:
       return to == Screen::Manage;
+    case Screen::RecordingUpload:
+    case Screen::RecordingDeleteConfirm:
+      return to == Screen::RecordMenu;
     case Screen::DeleteList:
       return to == Screen::Manage;
     case Screen::DeleteConfirm:

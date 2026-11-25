@@ -12,8 +12,8 @@ The system consists of:
 
 1. **Leeloo device:** ESP32-S3, OLED, EC11 rotary encoder with push-button, battery/power circuitry, and internal flash.
 2. **Device firmware:** Arduino-ESP32 framework using the underlying FreeRTOS scheduler and tasks.
-3. **Phone web application:** Served by the ESP32 while upload mode is active. It converts a user-selected PDF in the browser and transfers one normalized text book to the device.
-4. **Local storage:** LittleFS for books, settings, and reading progress.
+3. **Phone web application:** Served by the ESP32 during Wi-Fi mode. It converts a user-selected PDF in the browser and transfers one normalized text book to the device, or receives and plays a WAV recorded by the device.
+4. **Local storage:** LittleFS for books, settings, reading progress, and one pending WAV recording.
 5. **Development interface:** USB serial connection to a Mac for flashing and diagnostics.
 6. **Ambient light sensor and haptic driver:** two additional I2C peripherals, both provisional until the hardware gate (sections 3.5 and 3.6).
 
@@ -81,7 +81,7 @@ The firmware uses Arduino-ESP32 while explicitly using FreeRTOS tasks, queues, e
 Logical core ownership:
 
 - **Core 0:** Wi-Fi soft access point, HTTP server, upload processing, and network lifecycle.
-- **Core 1:** UI state machine, OLED rendering, RSVP timing, text navigation, and local input handling.
+- **Core 1:** UI state machine, OLED rendering, RSVP timing, text navigation, local input, and lower-priority I2S recording.
 
 Core pinning is an optimization and isolation boundary, not a license to share mutable state without synchronization. Cross-core communication uses bounded queues or protected state objects.
 
@@ -95,6 +95,7 @@ Core pinning is an optimization and isolation boundary, not a license to share m
 - **Book service:** metadata parsing, UTF-8 text access, library enumeration, deletion, and progress lookup.
 - **Storage service:** LittleFS access, atomic writes, settings, and progress records.
 - **Wi-Fi/upload service:** temporary AP, per-session PIN, browser assets, upload validation, and clean shutdown.
+- **Audio recorder:** I2S microphone capture on GPIO15/16/17, bounded WAV creation in LittleFS, pause/resume, and authenticated Wi-Fi transfer.
 - **Ambient light service:** low-rate sensor sampling, smoothing/hysteresis, and brightness-level requests to the display service when brightness mode is Auto.
 - **Haptic service:** effect queue, rate limiting, and driver control.
 - **I2C bus owner:** the OLED, light sensor and haptic driver share one bus. Access is serialized through a single owner or mutex, and bus traffic must never delay RSVP word timing; this is verified on hardware.
@@ -151,6 +152,10 @@ Scanned PDFs/OCR are out of scope. Modern iOS Safari and Android Chrome are the 
 - The PIN is shown on the device and required by the web page before upload.
 - No credentials persist because the device does not join a home network in the MVP.
 - Wi-Fi shuts down when the user exits upload mode or the session is explicitly cancelled.
+- `Grabar > Subir audio` uses the same AP, PIN, and cookie. The browser
+  receives the complete WAV as a Blob, then confirms receipt; only then does
+  the device remove its copy. A disconnected or incomplete GET leaves the WAV
+  available.
 
 ## 6. Storage and persistence
 
@@ -162,6 +167,10 @@ Initial conservative limits to validate during implementation:
 - Maximum library: 20 books, subject to actual partition capacity.
 - Maximum filename: 48 bytes after UTF-8-safe sanitization.
 - Reserve at least 2 MiB for firmware/recovery and retain a measurable free-space threshold.
+- Keep only one pending audio file. Record mono PCM at 8 kHz for up to 120
+  seconds when its WAV size plus the 2 MiB reserve and filesystem write margin
+  fit; otherwise try 16 kHz for up to 30 seconds. If neither fits, require the
+  user to free storage.
 
 These are starting limits, not hardware guarantees; the partition table and upload validator must expose them as constants.
 
@@ -170,6 +179,9 @@ Required persistence:
 - Settings: WPM, brightness mode (auto or manual), manual brightness level, haptics enabled, seek step, configured time, and display preferences.
 - Per-book progress: exact byte offset at the current cursor, saved when leaving a book and on controlled shutdown.
 - Atomic temporary-file-then-rename upload and metadata writes.
+- Finalize recordings by patching a WAV header in a temporary file and renaming
+  it only after successful capture. Do not remove pending audio except after a
+  complete confirmed transfer or explicit user deletion.
 - Deletion must complete through the storage service and report failure rather than silently continuing.
 - Format/clear requires confirmation and preserves device settings by default; a separate factory-reset behavior may be added later.
 
@@ -216,5 +228,6 @@ Because UTF-8 characters may occupy multiple bytes, offsets must always be valid
 - OTA updates.
 - Home-network/cloud connectivity.
 - Custom enclosure design.
-- Audio output and motion/gesture sensing (IMU) in the MVP.
+- On-device audio playback, transcription, and motion/gesture sensing (IMU) are
+  outside this firmware pass.
 - Production security hardening.

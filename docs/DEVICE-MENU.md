@@ -12,17 +12,21 @@ Status: draft. This document specifies the on-device OLED menu only. The phone w
 
 ## 2. Menu hierarchy
 
-Items appear in this order; the focused item is inverted.
+Items appear in this order; the focused item is inverted. The five root items
+scroll through the four visible OLED rows so focus remains visible.
 
 ```text
 LEELOO
   Leer >
   Biblioteca >
+  Grabar >
   Ajustes >
   Info >
 ```
 
-Each screen's title is the name of the row that opens it, in capitals (`LEER`, `BIBLIOTECA`, `AJUSTES`, `INFO`). User-facing text says "libro", not "TXT".
+Each screen's title is the name of the row that opens it, in capitals (`LEER`,
+`BIBLIOTECA`, `GRABAR`, `AJUSTES`, `INFO`). User-facing text says "libro", not
+"TXT".
 
 ### Leer
 
@@ -63,6 +67,34 @@ Selecting `Atrás` returns to the root menu. The upload screen also shows an `At
 
 Focus `Cancelar` by default. On confirmation, delete the file and its saved reading position, then return to the updated list. If the operation fails, keep the file and show an error with a way back.
 The book list scrolls in the rows above a fixed, selectable `< Atrás` row, returning to Biblioteca. `Cancelar` remains the back action on the confirmation screen.
+
+### Grabar
+
+The device records mono 16-bit PCM WAV from the I2S microphone wired to BCLK
+GPIO15, WS GPIO16 and data GPIO17.
+
+- If no WAV is pending, show `Grabar`. Capture at 8 kHz for up to two minutes
+  when LittleFS has enough room while preserving its 2 MiB reserve. If not,
+  fall back to 16 kHz for up to 30 seconds. If neither format fits, show that
+  the user must free storage; never delete books automatically.
+- During capture, show elapsed active recording time and offer `Pausar` and
+  `Detener`. While paused, offer `Reanudar` and `Detener`. Paused time does not
+  count toward the capture limit. A long SELECT press also stops and finalizes
+  the recording.
+- After finalization, keep the WAV pending on the device. Only one recording
+  can be pending: the user must transfer or delete it before recording again.
+- With a pending WAV, show `Subir audio` and `Borrar audio`. Deletion requires
+  an explicit confirmation and failure must leave the file intact.
+- `Subir audio` starts the existing authenticated soft-AP session and shows
+  SSID, PIN and address. The phone page receives and plays the WAV and offers a
+  download. The device deletes its copy only after the browser receives the
+  complete file and confirms receipt. An interrupted transfer leaves the WAV
+  available for retry.
+- `Wi-Fi: Apagado` blocks the transfer and directs the user to Ajustes. Auto
+  and Encendido keep their existing lifecycle behavior.
+
+Audio transcription is not part of this firmware pass. A future transcript is
+separate data and must not be deleted when transferred.
 
 ### Ajustes
 

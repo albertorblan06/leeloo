@@ -20,6 +20,11 @@ class Guard {
   Guard& operator=(const Guard&) = delete;
 };
 
+// Claims the single LittleFS mutation slot for a long-running file operation.
+// The lock itself is not held while streaming; callers must release the slot.
+bool try_begin_mutation();
+void end_mutation();
+
 std::size_t book_count();
 
 // Writes the title (file name without ".txt") of book `index` into `out`.

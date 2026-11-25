@@ -58,5 +58,6 @@ input:focus-visible, button:focus-visible, .button:focus-within, label.button:ha
   outline: 2px solid var(--focus); outline-offset: 2px;
 }
 progress { width: 100%; height: 4px; accent-color: var(--text); }
+audio { display: block; width: 100%; margin-top: 16px; }
 #error { padding: 12px; border: 1px solid var(--focus); color: var(--text); }
 @media (prefers-reduced-motion: reduce) { button, .button { transition: none; } }

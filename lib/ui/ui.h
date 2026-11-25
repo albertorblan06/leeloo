@@ -24,6 +24,10 @@ enum class Screen : std::uint8_t {
   Wifi,
   SpeedStep,
   About,
+  RecordMenu,
+  Recording,
+  RecordingUpload,
+  RecordingDeleteConfirm,
   Message,
   Reading,   // RSVP playback of the book chosen in Leer
   ReadEnd,   // end of book: Releer or Volver al menú
@@ -43,6 +47,21 @@ enum class Event : std::uint8_t {
   UploadSaved,     // adapter: a book was stored
   UploadTimedOut,  // adapter: no upload activity for the inactivity limit
   DeleteFailed,    // adapter: the file could not be removed
+  AudioAvailable,  // adapter: a completed WAV is already stored
+  AudioStorageUnavailable,
+  AudioBusy,
+  AudioStartFailed,
+  AudioSaveFailed,
+  AudioNoSpace,
+  RecordingStarted,
+  RecordingPaused,
+  RecordingResumed,
+  AudioSaved,
+  AudioDeleted,
+  AudioDeleteFailed,
+  AudioTransferred,
+  AudioUploadStartFailed,
+  AudioUploadTimedOut,
   ReaderFinished,  // adapter: the last word of the book has been held
   BookOpenFailed,  // adapter: the book could not be loaded or has no text start
 };
@@ -51,6 +70,14 @@ enum class Command : std::uint8_t {
   None,
   StartUpload,
   StopUpload,
+  StartRecording,
+  PauseRecording,
+  ResumeRecording,
+  StopRecording,
+  DeleteRecording,
+  StartRecordingUpload,
+  StopRecordingUpload,
+  RecordingTransferred,
   DeleteBook,      // index: book to remove
   OpenBook,        // index: book to play from its saved position (or the start)
   CloseBook,       // adapter: stop playback and save the position (or clear it at the end)
@@ -68,6 +95,16 @@ enum class Message : std::uint8_t {
   UploadSaved,
   UploadTimedOut,
   DeleteFailed,
+  AudioStartFailed,
+  AudioBusy,
+  AudioSaveFailed,
+  AudioNoSpace,
+  AudioSaved,
+  AudioDeleted,
+  AudioDeleteFailed,
+  AudioTransferred,
+  AudioUploadStartFailed,
+  AudioUploadTimedOut,
   BookOpenFailed,
 };
 
@@ -84,11 +121,14 @@ class Ui {
 
   // The adapter reports the stored book count after any change to the library.
   void set_book_count(std::size_t count);
+  void set_recording_available(bool available);
+  void set_audio_storage_ready(bool ready);
 
   Screen screen() const { return screen_; }
   std::size_t cursor() const { return cursor_.index(); }
   Message message() const { return message_; }
   std::size_t book_count() const { return book_count_; }
+  bool recording_available() const { return recording_available_; }
   std::size_t pending_book() const { return pending_book_; }
   std::size_t reading_book() const { return reading_book_; }
 
@@ -113,17 +153,21 @@ class Ui {
   Outcome back();
   Outcome change(int direction);
   Outcome on_upload_event(Event event);
+  Outcome on_recording_event(Event event);
   Outcome on_reading_event(Event event);
 
   Screen screen_ = Screen::Root;
   Screen return_to_ = Screen::Root;
   Message message_ = Message::None;
-  menu::Menu cursor_{4};
+  menu::Menu cursor_{5};
   std::size_t book_count_ = 0;
+  bool recording_available_ = false;
+  bool audio_storage_ready_ = true;
   std::size_t pending_book_ = 0;  // book chosen for deletion
   std::size_t reading_book_ = 0;  // book being read, reopened by Releer
   bool editing_ = false;
   bool reading_paused_ = false;
+  bool recording_paused_ = false;
   settings::Settings settings_;
 };
 

@@ -9,7 +9,7 @@
 <body>
   <main>
     <p class="mark">LEELOO</p>
-    <h1>Subir libro</h1>
+    <h1>Leeloo</h1>
     <p id="error" role="alert" hidden></p>
 
     <form id="pin" novalidate>
@@ -18,6 +18,12 @@
       <p class="help">Es el número de cuatro cifras que se muestra en la pantalla.</p>
       <button type="submit">Seguir</button>
     </form>
+
+    <section id="choose" hidden>
+      <p>¿Qué quieres hacer?</p>
+      <button id="choose-book" type="button">Subir libro</button>
+      <button id="choose-audio" type="button">Recibir audio</button>
+    </section>
 
     <section id="file" hidden>
       <label class="button" for="file-input">Elegir PDF</label>
@@ -43,6 +49,13 @@
     <section id="done" hidden>
       <p>Libro enviado.</p>
       <button id="again" type="button">Subir otro</button>
+    </section>
+
+    <section id="audio-done" hidden>
+      <p id="audio-status" role="status"></p>
+      <audio id="audio-player" controls></audio>
+      <a id="audio-download" class="button" download="grabacion.wav">Descargar WAV</a>
+      <button id="audio-again" type="button">Volver a opciones</button>
     </section>
   </main>
   <script type="module" src="/app.js"></script>

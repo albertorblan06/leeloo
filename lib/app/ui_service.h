@@ -16,7 +16,7 @@ class UiService {
  public:
   UiService(const settings::Settings& initial, ILibrary* library, ISettingsStore* store,
             IDisplayControl* display, rtos::Queue<RsvpMsg>* rsvp_out, rtos::Queue<NetMsg>* net_out,
-            ILog* log = nullptr);
+            rtos::Queue<RecordingMsg>* recording_out, ILog* log = nullptr);
 
   // Runs one event. The caller redraws afterwards: every event can change the screen.
   void handle(ui::Event event);
@@ -36,6 +36,7 @@ class UiService {
   IDisplayControl* display_;
   rtos::Queue<RsvpMsg>* rsvp_out_;
   rtos::Queue<NetMsg>* net_out_;
+  rtos::Queue<RecordingMsg>* recording_out_;
   ILog* log_;
 };
 

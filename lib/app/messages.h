@@ -31,11 +31,19 @@ struct RsvpMsg {
   std::uint32_t wpm_step = settings::kDefaultReadingStepPpm;  // Open: speed increment
 };
 
+enum class RecordingCmd : std::uint8_t { Start, Pause, Resume, Stop, Delete };
+struct RecordingMsg {
+  RecordingCmd cmd;
+};
+
 // UiService -> NetService.
 enum class NetCmd : std::uint8_t {
   Boot,                 // apply the saved Wi-Fi mode once at start
   StartUpload,          // the upload screen opened
   StopUpload,           // the upload screen closed
+  StartRecordingUpload,
+  StopRecordingUpload,
+  RecordingTransferred,
   ApplyWifi,            // the Wi-Fi setting changed
   SavedOnUploadScreen,  // a book was stored while the upload screen was open
 };

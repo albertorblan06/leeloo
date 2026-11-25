@@ -20,7 +20,7 @@ Ui make_ui(std::size_t books = 0, Settings s = Settings{}) {
 
 Outcome press(Ui& u, Event e) { return u.handle(e); }
 
-// Walks from the root menu to `target` (0 Leer, 1 Biblioteca, 2 Ajustes, 3 Info).
+// Walks from the root menu to `target` (Leer, Biblioteca, Grabar, Ajustes, Info).
 void open_root_item(Ui& u, std::size_t target) {
   while (u.cursor() != target) press(u, Event::Down);
   press(u, Event::Select);
@@ -46,7 +46,7 @@ void test_starts_on_root_with_first_item_focused() {
 void test_root_cursor_wraps_at_both_ends() {
   Ui u = make_ui();
   press(u, Event::Up);
-  TEST_ASSERT_EQUAL_UINT(3, u.cursor());
+  TEST_ASSERT_EQUAL_UINT(4, u.cursor());
   press(u, Event::Down);
   TEST_ASSERT_EQUAL_UINT(0, u.cursor());
 }
@@ -65,6 +65,79 @@ void test_root_back_is_a_no_op() {
   Ui u = make_ui();
   press(u, Event::Back);
   TEST_ASSERT_EQUAL(Screen::Root, u.screen());
+}
+
+void test_root_grabar_opens_recording_menu() {
+  Ui u = make_ui();
+  open_root_item(u, 2);
+  TEST_ASSERT_EQUAL(Screen::RecordMenu, u.screen());
+  TEST_ASSERT_EQUAL_UINT(0, u.cursor());
+  TEST_ASSERT_EQUAL(Command::StartRecording, press(u, Event::Select).command);
+  TEST_ASSERT_EQUAL(Screen::Recording, u.screen());
+}
+
+void test_recording_is_disabled_when_storage_is_unavailable() {
+  Ui u = make_ui();
+  press(u, Event::AudioStorageUnavailable);
+  open_root_item(u, 2);
+  TEST_ASSERT_EQUAL(Screen::RecordMenu, u.screen());
+  TEST_ASSERT_EQUAL(Command::None, press(u, Event::Select).command);
+  TEST_ASSERT_EQUAL(Screen::Root, u.screen());
+}
+
+void test_busy_storage_returns_from_recording_with_a_message() {
+  Ui u = make_ui();
+  open_root_item(u, 2);
+  press(u, Event::Select);
+  press(u, Event::AudioBusy);
+  TEST_ASSERT_EQUAL(Screen::Message, u.screen());
+  TEST_ASSERT_EQUAL(Message::AudioBusy, u.message());
+}
+
+void test_recording_can_pause_resume_and_stop() {
+  Ui u = make_ui();
+  open_root_item(u, 2);
+  press(u, Event::Select);
+  TEST_ASSERT_EQUAL(Command::PauseRecording, press(u, Event::Select).command);
+  press(u, Event::RecordingPaused);
+  TEST_ASSERT_EQUAL(Command::ResumeRecording, press(u, Event::Select).command);
+  press(u, Event::RecordingResumed);
+  press(u, Event::Down);
+  TEST_ASSERT_EQUAL(Command::StopRecording, press(u, Event::Select).command);
+  press(u, Event::AudioSaved);
+  TEST_ASSERT_EQUAL(Screen::Message, u.screen());
+  TEST_ASSERT_TRUE(u.recording_available());
+  press(u, Event::Select);
+  TEST_ASSERT_EQUAL(Screen::RecordMenu, u.screen());
+}
+
+void test_pending_audio_can_be_deleted_only_after_confirmation() {
+  Ui u = make_ui();
+  press(u, Event::AudioAvailable);
+  open_root_item(u, 2);
+  press(u, Event::Down);
+  press(u, Event::Select);
+  TEST_ASSERT_EQUAL(Screen::RecordingDeleteConfirm, u.screen());
+  TEST_ASSERT_EQUAL(Command::None, press(u, Event::Select).command);
+  TEST_ASSERT_TRUE(u.recording_available());
+  press(u, Event::Down);
+  press(u, Event::Select);
+  TEST_ASSERT_EQUAL(Screen::RecordingDeleteConfirm, u.screen());
+  press(u, Event::Down);
+  TEST_ASSERT_EQUAL(Command::DeleteRecording, press(u, Event::Select).command);
+  press(u, Event::AudioDeleted);
+  TEST_ASSERT_FALSE(u.recording_available());
+}
+
+void test_recording_upload_respects_wifi_off() {
+  Settings s;
+  s.wifi = WifiMode::Off;
+  Ui u = make_ui(0, s);
+  press(u, Event::AudioAvailable);
+  open_root_item(u, 2);
+  press(u, Event::Select);
+  TEST_ASSERT_EQUAL(Screen::Message, u.screen());
+  TEST_ASSERT_EQUAL(Message::WifiOff, u.message());
 }
 
 // --- Leer ---
@@ -341,7 +414,7 @@ void test_failed_delete_keeps_list_and_shows_error() {
 
 void test_brightness_mode_toggles_and_saves() {
   Ui u = make_ui();
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   open_root_item(u, 0);
   const Outcome o = press(u, Event::Left);
   TEST_ASSERT_EQUAL(Command::SaveSettings, o.command);
@@ -350,7 +423,7 @@ void test_brightness_mode_toggles_and_saves() {
 
 void test_reading_step_is_editable_and_saves() {
   Ui u = make_ui();
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   press(u, Event::Down);
   press(u, Event::Down);
   press(u, Event::Down);
@@ -368,7 +441,7 @@ void test_reading_step_setting_clamps_to_supported_options() {
   Settings s;
   s.reading_step_ppm = 100;
   Ui u = make_ui(0, s);
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   press(u, Event::Down);
   press(u, Event::Down);
   press(u, Event::Down);
@@ -384,7 +457,7 @@ void test_changing_reading_step_snaps_saved_speed_to_the_new_grid() {
   Settings s;
   s.last_reading_wpm = 325;
   Ui u = make_ui(0, s);
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   press(u, Event::Down);
   press(u, Event::Down);
   press(u, Event::Down);
@@ -397,7 +470,7 @@ void test_changing_reading_step_snaps_saved_speed_to_the_new_grid() {
 
 void test_repeat_only_changes_numeric_settings_while_editing() {
   Ui u = make_ui();
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   press(u, Event::Down);
   open_root_item(u, 1);
   TEST_ASSERT_EQUAL(Command::None, press(u, Event::DownRepeat).command);
@@ -410,7 +483,7 @@ void test_manual_level_is_hidden_in_auto_mode() {
   Settings s;
   s.brightness_mode = BrightnessMode::Auto;
   Ui u = make_ui(0, s);
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   open_root_item(u, 0);
   press(u, Event::Down);  // only one row exists in Auto
   TEST_ASSERT_EQUAL_UINT(1, u.cursor());  // Atrás follows the Modo row
@@ -427,7 +500,7 @@ void test_auto_brightness_reports_missing_sensor() {
 
 void test_manual_level_steps_by_five_within_range() {
   Ui u = make_ui();
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   open_root_item(u, 0);
   press(u, Event::Down);
   press(u, Event::Left);
@@ -438,7 +511,7 @@ void test_manual_level_steps_by_five_within_range() {
 
 void test_contrast_steps_by_five_and_saves() {
   Ui u = make_ui();
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   press(u, Event::Down);
   open_root_item(u, 1);
   const Outcome o = press(u, Event::Left);  // 100 -> 95
@@ -450,7 +523,7 @@ void test_contrast_steps_by_five_and_saves() {
 
 void test_pressing_past_the_limit_changes_nothing_and_saves_nothing() {
   Ui u = make_ui();
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   press(u, Event::Down);
   open_root_item(u, 1);  // Contraste at 100
   const Outcome o = press(u, Event::Right);
@@ -460,7 +533,7 @@ void test_pressing_past_the_limit_changes_nothing_and_saves_nothing() {
 
 void test_wifi_setting_cycles_through_three_modes() {
   Ui u = make_ui();
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   press(u, Event::Down);
   press(u, Event::Down);
   open_root_item(u, 2);
@@ -475,7 +548,7 @@ void test_wifi_setting_cycles_through_three_modes() {
 
 // Ajustes > the given row (0 Brillo, 1 Contraste, 2 Wi-Fi, 3 Velocidad de lectura).
 void open_setting(Ui& u, std::size_t row) {
-  open_root_item(u, 2);
+  open_root_item(u, 3);
   open_root_item(u, row);
 }
 
@@ -594,7 +667,7 @@ void test_menus_still_move_with_up_and_down() {
 
 void test_about_is_read_only() {
   Ui u = make_ui();
-  open_root_item(u, 3);
+  open_root_item(u, 4);
   TEST_ASSERT_EQUAL(Command::None, press(u, Event::Left).command);
   TEST_ASSERT_EQUAL(Screen::About, u.screen());
   press(u, Event::Select);
@@ -634,6 +707,10 @@ int main() {
   RUN_TEST(test_root_cursor_wraps_at_both_ends);
   RUN_TEST(test_repeat_events_do_not_move_menu_focus);
   RUN_TEST(test_root_back_is_a_no_op);
+  RUN_TEST(test_root_grabar_opens_recording_menu);
+  RUN_TEST(test_recording_can_pause_resume_and_stop);
+  RUN_TEST(test_pending_audio_can_be_deleted_only_after_confirmation);
+  RUN_TEST(test_recording_upload_respects_wifi_off);
   RUN_TEST(test_back_from_empty_read_list_returns_to_root);
   RUN_TEST(test_back_item_after_books_returns_to_root);
   RUN_TEST(test_selecting_a_book_opens_the_reading_screen);

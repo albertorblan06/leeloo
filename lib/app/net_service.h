@@ -33,7 +33,7 @@ class NetService {
   std::uint32_t wait_ms(std::uint32_t now_ms) const;
 
  private:
-  void start_upload(std::uint32_t now_ms);
+  void start_upload(std::uint32_t now_ms, bool recording = false);
   void end_upload_session();
 
   INet* net_;
@@ -42,6 +42,7 @@ class NetService {
   upload::InactivityTimer timer_{upload::kUploadInactivityMs};
   settings::WifiMode applied_wifi_ = settings::WifiMode::Auto;
   bool auto_session_ = false;  // Automático: the session ends after inactivity
+  bool recording_session_ = false;
   std::uint32_t stop_at_ms_ = 0;  // deferred stop after a save; 0 means none
 };
 

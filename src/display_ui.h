@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "reading_frame.h"
+#include "recording_frame.h"
 #include "ui.h"
 
 // OLED adapter for the device menu. Draws the grid from docs/DESIGN.md §3 for the
@@ -16,6 +17,7 @@ struct Status {
   std::size_t free_bytes = 0;
   bool ap_running = false;
   const char* pin = "";
+  app::RecordingFrame recording;
 };
 
 // Starts the I2C bus and the panel. Returns false when no OLED answers at 0x3C/0x3D.

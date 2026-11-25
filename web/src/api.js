@@ -10,20 +10,23 @@ export class ApiError extends Error {
 const messages = {
   invalid_pin: 'PIN incorrecto. Revisa el número que se muestra en el dispositivo.',
   unauthorized: 'La sesión no es válida. Vuelve a introducir el PIN.',
-  session_closed: 'La sesión terminó. Vuelve a elegir «Subir libro» en el dispositivo.',
+  session_closed: 'La sesión terminó. Vuelve a elegir una opción en el dispositivo.',
   bad_name: 'El nombre del libro no es válido o es demasiado largo.',
+  no_recording: 'No hay ningún audio grabado pendiente en el dispositivo.',
+  invalid_audio: 'El dispositivo no ha enviado un WAV válido.',
+  busy: 'El dispositivo está ocupado con otra operación de almacenamiento.',
   library_full: 'La biblioteca está llena. Borra un libro en el dispositivo.',
   too_large: 'El libro es demasiado grande para el dispositivo (máximo 1 MiB de texto).',
   invalid_utf8: 'El texto del libro no es UTF-8 válido.',
   invalid_format: 'El dispositivo no reconoce el formato del libro.',
   no_space: 'No hay espacio libre suficiente en el dispositivo.',
-  storage_error: 'El dispositivo no pudo guardar el libro. Inténtalo de nuevo.',
+  storage_error: 'El dispositivo no pudo completar la operación. Inténtalo de nuevo.',
   network: 'No se pudo conectar con el dispositivo. Comprueba la conexión Wi-Fi.',
-  aborted: 'Envío cancelado.',
+  aborted: 'Operación cancelada.',
 };
 
 export function errorMessage(code) {
-  return messages[code] ?? 'Error desconocido. El libro no se ha enviado.';
+  return messages[code] ?? 'No se pudo completar la operación.';
 }
 
 export function errorFromResponse(status, bodyText) {
@@ -50,6 +53,38 @@ export async function authenticate(pin, fetchFn = fetch) {
   if (!res.ok) {
     throw errorFromResponse(res.status, await res.text());
   }
+}
+
+export async function fetchRecording({ signal, fetchFn = fetch } = {}) {
+  let res;
+  try {
+    res = await fetchFn('/api/recording', { signal });
+  } catch {
+    throw new ApiError(signal?.aborted ? 'aborted' : 'network', 0);
+  }
+  if (!res.ok) throw errorFromResponse(res.status, await res.text());
+
+  let blob;
+  try {
+    blob = await res.blob();
+  } catch {
+    throw new ApiError(signal?.aborted ? 'aborted' : 'network', res.status);
+  }
+  if (blob.size < 44 || blob.type !== 'audio/wav') {
+    throw new ApiError('invalid_audio', res.status);
+  }
+  return blob;
+}
+
+export async function acknowledgeRecording({ signal, fetchFn = fetch } = {}) {
+  let res;
+  try {
+    res = await fetchFn('/api/recording/ack', { method: 'POST', signal });
+  } catch {
+    throw new ApiError(signal?.aborted ? 'aborted' : 'network', 0);
+  }
+  if (!res.ok) throw errorFromResponse(res.status, await res.text());
+  return res.json();
 }
 
 // XMLHttpRequest instead of fetch because fetch has no upload progress events.

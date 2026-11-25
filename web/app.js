@@ -1,15 +1,18 @@
 // Browser glue only: DOM wiring around the tested modules in src/. Excluded from coverage.
-import { authenticate, uploadBook, errorMessage } from './src/api.js';
+import {
+  acknowledgeRecording, authenticate, fetchRecording, uploadBook, errorMessage,
+} from './src/api.js';
 import { extractPdf, extractErrorMessage } from './src/pdf.js';
 import { buildBookFile } from './src/format.js';
 import { bookNameFrom } from './src/name.js';
 
 const $ = (id) => document.getElementById(id);
-const steps = ['pin', 'file', 'busy', 'review', 'done'];
+const steps = ['pin', 'choose', 'file', 'busy', 'review', 'done', 'audio-done'];
 const kUnknownAuthor = 'Desconocido';
 
 let book = null; // { title, author, pages, text } from the last conversion
 let controller = null;
+let audioUrl = null;
 
 function show(step) {
   for (const s of steps) $(s).hidden = s !== step;
@@ -50,9 +53,38 @@ $('pin').addEventListener('submit', async (e) => {
   clearError();
   try {
     await authenticate($('pin-input').value.trim());
-    show('file');
+    show('choose');
   } catch (err) {
     showError(errorMessage(err.code));
+  }
+});
+
+$('choose-book').addEventListener('click', () => {
+  clearError();
+  show('file');
+});
+
+$('choose-audio').addEventListener('click', async () => {
+  clearError();
+  busy('Recibiendo audio…');
+  try {
+    const blob = await fetchRecording({ signal: controller.signal });
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    audioUrl = URL.createObjectURL(blob);
+    $('audio-player').src = audioUrl;
+    $('audio-download').href = audioUrl;
+    let status = 'Audio recibido. Ya puedes reproducirlo o descargarlo.';
+    try {
+      await acknowledgeRecording({ signal: controller.signal });
+      status += ' Se ha borrado del dispositivo.';
+    } catch {
+      status += ' No se pudo confirmar el borrado en el dispositivo.';
+    }
+    $('audio-status').textContent = status;
+    show('audio-done');
+  } catch (err) {
+    showError(errorMessage(err.code));
+    show(err.code === 'unauthorized' || err.code === 'session_closed' ? 'pin' : 'choose');
   }
 });
 
@@ -112,3 +144,4 @@ $('review').addEventListener('submit', async (e) => {
 
 $('cancel').addEventListener('click', () => controller?.abort());
 $('again').addEventListener('click', () => show('file'));
+$('audio-again').addEventListener('click', () => show('choose'));
