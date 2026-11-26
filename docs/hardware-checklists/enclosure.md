@@ -1,6 +1,6 @@
 # Enclosure fit (front + back half)
 
-Parts: `hardware/enclosure/front_shell.stl`, `back_cover.stl`, `rocker.stl`, `select_cap.stl`. Screws: 4 × M2.5 × 4 mm (OLED); 4 × M2 × 10 mm (back cover through the perfboard into the front bosses).
+Parts: `hardware/enclosure/front_shell.stl`, `back_cover.stl`, `rocker.stl`, `select_cap.stl`. Screws: 4 × M2.5 × 4 mm (OLED); 4 × M2 countersunk, ~6 mm (perfboard into the front bosses, from behind); 4 × M2 × 10 mm (back cover into the front closure posts, not through the perfboard). Parts: one 18650 cell (split from the 2S pack), TP4056, SX1308 booster.
 
 ## Setup
 - [ ] Printed in PLA/PETG, 0.2 mm layers, no supports, in the orientation stored in the STLs.
@@ -11,21 +11,24 @@ Parts: `hardware/enclosure/front_shell.stl`, `back_cover.stl`, `rocker.stl`, `se
 - [ ] OLED screws (M2.5 × 4) bite into the pilot holes and do not pierce the plate; OLED does not move when pushed.
 - [ ] OLED visible area fully shows through the window; no pixel is cut off at the top or bottom (the OLED and its bosses sit at oled_y = 14.8, 4.5 mm lower than the 19.3 build: if still off, note by how much: ____ mm).
 - [ ] OLED header pins fully engage in the socket with the OLED screwed down (OLED underside at 10.6 mm).
-- [ ] Perfboard corner holes line up with the bosses; M2 screws bite into the Ø1.6 pilot holes.
+- [ ] Perfboard corner holes line up with the bosses; the M2 countersunk screws sit in the Ø2.2 holes, bite into the Ø1.6 pilot holes and stand no more than ~0.5 mm proud (`head_h`): measured ____ mm.
 - [ ] Perfboard (50 mm) drops into the cavity without force; wires at the top/bottom edges are not squashed.
-- [ ] Back cover: the lip enters the front shell with no force and no gap at the sides/bottom; the four M2 × 10 screws pull the cover down and clamp the perfboard without bending it.
-- [ ] Battery (36.6 × 46 × 8.25, on edge): slides into the top bay between the rib and the end wall, is held by the side stops, and its leads can reach the board along either side of the rib. Real cell measured: ____ × ____ × ____ mm.
-- [ ] TP4056: slides in on edge between the floor stop and the retaining rib; the USB-C receptacle lines up with the opening and a charging cable seats fully (plug overmold fits the recess). Measured: PCB thickness ____ mm, receptacle length ____ mm, USB-C overhang past the PCB edge ____ mm.
+- [ ] Back cover: the lip enters the front shell with no force and no gap at the sides; the four M2 × 10 closure screws (one in each corner) pull the halves together and the seam closes all round.
+- [ ] 18650 (modelled Ø19 × 67 with tab and insulation): lies in the cradle between the rails and end stops beside the ESP32, does not touch the ESP32 PCB or the screw heads under the perfboard, and its leads reach the TP4056 and the booster. Real cell measured: Ø ____ × ____ mm; the cell split from the pack has its tab only on one end: ____.
+- [ ] TP4056: slides in on edge between the -X stop and the thinned +X wall, with the retaining ribs; the USB-C receptacle lines up with the port hole and a cable seats fully through the 1.0 mm wall (only the 9.6 × 3.55 mm hole shows outside; the overmold stays outside). Measured: PCB thickness ____ mm, receptacle length ____ mm, USB-C overhang past the PCB edge ____ mm.
 - [ ] Charging works with the case closed (check the charge LED with the cover off: it faces into the case).
-- [ ] Wi-Fi upload still works with the case closed (the battery sits about 8 mm from the ESP32 antenna: note the RSSI before/after: ____ / ____ dBm).
-- [ ] Rocker: pressing the upper end clicks the UP switch and the lower end clicks DOWN; it returns on its own and does not rub the slot.
+- [ ] Wi-Fi upload still works with the case closed. The cell sits right beside the ESP32 antenna zone (0.7 mm from the PCB edge, up to y = 33.5): note the RSSI with and without the cell: ____ / ____ dBm. If the range collapses, the cell has to move away from the antenna (a longer case).
+- [ ] Rocker (no fulcrum rib, seesaw on its legs): it can be fitted from inside the shell (flange between the rails, necks through the slot) before the perfboard goes in; pressing the upper end clicks UP and the lower end clicks DOWN; it returns on its own, does not rub the slot and neither switch reads pressed at rest.
 - [ ] SELECT cap: clicks the switch, returns, and does not catch in the guide tube.
 - [ ] Neither button rattles when the shell is shaken (`slide_clr` is now 0.08 mm per side).
 - [ ] SELECT reads released at rest (multimeter or firmware). `sel_leg_gap` is only 0.05 mm, below the ±0.3 mm switch-height tolerance: if it reads pressed, raise it.
 - [ ] First print without supports: the bed-side chamfers are clean; the rocker flange and SELECT flange undersides and the cover's lip ledge print without sagging or stringing.
 - [ ] Rocker and SELECT still slide and return with the new chamfered flanges; SELECT still stops against the plate (its retaining ring is now about 0.5 mm).
-- [ ] The 1.35 mm lip enters the front shell without force; the rounded cavity corners (r = 2.0) don't interfere with the PCB, the battery or the TP4056.
-- [ ] TP4056 doesn't lean toward the bottom wall (wall-side retainer) and its USB-C stays aligned with the opening. A PCB longer than 28.0 mm won't fit: it sits flush against the +X wall.
+- [ ] The 1.35 mm lip enters the front shell without force; the rounded cavity corners (r = 12.0) don't interfere with the cell, the booster or the TP4056.
+- [ ] TP4056 doesn't lean toward the bottom wall (wall-side rib) and its USB-C stays aligned with the port. A PCB longer than 28.0 mm won't fit between the stop and the thinned wall. The 1.0 mm wall behind the port printed without gaps or stringing.
+- [ ] SX1308 (modelled 17 × 24 × 12.5 mm) drops into its bay between the ribs; measured: ____ × ____ × ____ mm (tallest part). Its output capacitor fits.
+- [ ] ESP32 USB-C is not reachable with the case closed (no opening this pass): note how to flash it (open the cover) ____.
+- [ ] Case size: 73.4 × 100.35 mm, 38.5 mm thick closed. The two halves print without supports and the 2 mm bed chamfers are clean; the r14 corners and the chamfer meet without a thin wall (1.6 mm at the plate/floor).
 - [ ] Filament colours: shell black, rocker white, SELECT red.
 - [ ] Front edge of the shell feels smooth; the buttons stand proud and feel right (2.5 mm).
 
