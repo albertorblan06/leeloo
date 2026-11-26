@@ -43,8 +43,23 @@ The project cell is now one **18650** split from a 7.4 V 1500 mAh 2S RC pack (th
 - [ ] Wi-Fi upload mode runs without brownout on battery.
 - Do not: feed 3V3 directly from the battery (4.2 V > 3.6 V max), or drop voltage with series diodes (only works with a full battery).
 
+## Incident: fire on the TP4056 (2026-11-26)
+
+The battery was connected to B+/B- with reversed polarity. The TP4056 has no reverse protection and burned; the SX1308 was not at fault. Always check B+/B- polarity with a multimeter before connecting the battery. Add a 0.5-1 A fuse or PTC in series with the battery (not available yet).
+
+## Working power path (2026-11-27)
+
+Battery -> TP4056 B+/B- ; TP4056 OUT+/OUT- -> SX1308 VIN/GND ; SX1308 OUT/GND -> devkit 5V/GND. ESP32 USB unplugged while on battery.
+
+- [x] SX1308 trimmer needs ~20 turns clockwise from the low end (clutch clicks at each end) to reach 5.02 V; set with the ESP32 disconnected.
+- [x] ESP32 powers up from the battery and the OLED works.
+- [ ] 3V3 pin value under load: ____ V.
+- [ ] No resets during Wi-Fi book upload (add 100-470 uF at the SX1308 output if it resets).
+- [ ] Mic noise floor on battery vs USB (the SX1308 switches at ~1.2 MHz).
+- [ ] Idle current of the SX1308 + TP4056 path, for battery life.
+- [ ] Fuse/PTC in series with the battery.
+
 ## Next
 
-- Validate the regulator on its own (boost to 5 V into the devkit 5V pin, or 3.3 V LDO into 3V3) before connecting the ESP32. The battery at 4.2 V must never reach the 3V3 pin directly (max 3.6 V).
 - Add 100-470 uF + 100 nF on the supply input and a Schottky diode if USB and battery can both feed the board.
 - Battery measurement: 100k/100k divider to an ADC1 pin (GPIO1 or GPIO2) with 100 nF.

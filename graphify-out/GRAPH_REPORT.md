@@ -1,17 +1,17 @@
-# Graph Report - leeloo  (2026-11-26)
+# Graph Report - leeloo  (2026-11-27)
 
 ## Corpus Check
-- 107 files · ~57,772 words
+- 107 files · ~57,920 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .stl 4, (none) 2, .csv 1)
 
 ## Summary
-- 1650 nodes · 3300 edges · 80 communities (72 shown, 8 thin omitted)
+- 1652 nodes · 3302 edges · 77 communities (71 shown, 6 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 378 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `84a4b5f2`
+- Built from commit: `8b6f1e1f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -27,7 +27,7 @@
 - NetService
 - OLED RSVP smoke test
 - Temporary input: 3 push buttons (replaces the EC11 encoder)
-- Net
+- test_joystick.cpp
 - app.js
 - upload_server.cpp
 - package.json
@@ -38,7 +38,7 @@
 - percent_decode
 - upload.cpp
 - .take
-- spawn
+- rsvp_service.cpp
 - build.mjs
 - Ui
 - rsvp_view.cpp
@@ -54,7 +54,7 @@
 - Leeloo Device Menu Design
 - On-device menu (joystick)
 - test_rtos.cpp
-- INet
+- ReadingFrame
 - Wi-Fi soft AP and book upload
 - App
 - Command
@@ -76,9 +76,8 @@
 - FakeNotifier
 - RsvpMsg
 - NetMsg
-- test_inactivity.cpp
 - UiService::UiService
-- settings_store.cpp
+- src/main.cpp
 - Log
 - LiPo + TP4056 charging (bring-up, ESP32 NOT connected)
 - Snapshot
@@ -88,12 +87,10 @@
 - IMutex
 - rtos_freertos.cpp
 - INMP441 microphone (bring-up)
-- DisplayControl
 - ViewFixture
 - Enclosure fit (front half)
 - FakeMutex
 - State
-- ISettingsStore
 
 ## God Nodes (most connected - your core abstractions)
 1. `Ui` - 50 edges
@@ -127,7 +124,7 @@
 - **Requirements to architecture to plan to roadmap chain** — docs_architecture_answers, docs_architecture, docs_implementation_plan, docs_roadmap [EXTRACTED 1.00]
 - **Phone to device book transfer pipeline** — docs_architecture_browser_conversion, docs_architecture_wifi_session, docs_architecture_book_format, docs_architecture_littlefs_storage, docs_architecture_rsvp_behavior [INFERRED 0.85]
 
-## Communities (80 total, 8 thin omitted)
+## Communities (77 total, 6 thin omitted)
 
 ### Community 0 - "build_enclosure.py"
 Cohesion: 0.08
@@ -138,8 +135,8 @@ Cohesion: 0.06
 Nodes (76): Agent Context (CONTEXT.md), Hardware purchase gated by board/display/power validation, Project State, Agent Errors and Lessons, Agent Memory (MEMORY.md), Append-only memory rule, Phase 0 scaffold (memory entry), Agent Workflow (WORKFLOW.md) (+68 more)
 
 ### Community 2 - "Menu"
-Cohesion: 0.05
-Nodes (22): Axis, center_, state_, Direction, High, Low, None, utf8_sequence_length() (+14 more)
+Cohesion: 0.06
+Nodes (17): utf8_sequence_length(), Menu, count_, InactivityTimer, last_ms_, limit_ms_, running_, test_activity_restarts_the_window() (+9 more)
 
 ### Community 3 - "hold_of"
 Cohesion: 0.12
@@ -162,8 +159,8 @@ Cohesion: 0.09
 Nodes (39): BestSplit, byte, cost, letters, classify(), count_letters(), count_newlines_after(), decode_at() (+31 more)
 
 ### Community 9 - "NetService"
-Cohesion: 0.15
-Nodes (11): NetService, applied_wifi_, auto_session_, kInactivityPollMs, kStopAfterSaveMs, log_, net_, stop_at_ms_ (+3 more)
+Cohesion: 0.06
+Nodes (20): NetService, applied_wifi_, auto_session_, kInactivityPollMs, kStopAfterSaveMs, log_, net_, NetService::NetService() (+12 more)
 
 ### Community 10 - "OLED RSVP smoke test"
 Cohesion: 0.40
@@ -173,9 +170,9 @@ Nodes (4): Checks, OLED RSVP smoke test, Run log, Setup
 Cohesion: 0.22
 Nodes (8): Checks, Firmware notes (when implemented), Full pin summary, Mapping, Menu test (firmware on `dev`), OLED 1.3" 128x64 (I2C, 4 pins, unchanged), Temporary input: 3 push buttons (replaces the EC11 encoder), Wiring (all connections)
 
-### Community 12 - "Net"
-Cohesion: 0.17
-Nodes (7): Net, is_running, last_activity, marks, start_ok, starts, stops
+### Community 12 - "test_joystick.cpp"
+Cohesion: 0.13
+Nodes (15): Axis, center_, state_, Direction, High, Low, None, test_hysteresis_does_not_retrigger_between_exit_and_enter() (+7 more)
 
 ### Community 13 - "app.js"
 Cohesion: 0.08
@@ -217,13 +214,9 @@ Nodes (18): BookValidator, body_bytes_, error_, line_, line_len_, pages_seen_, s
 Cohesion: 0.15
 Nodes (17): test_book_open_failure_from_rsvp_shows_a_message(), test_book_without_start_marker_fails_and_is_released(), test_cancelled_delete_keeps_the_book(), test_changing_contrast_saves_applies_and_tells_net(), test_changing_wifi_mode_sends_the_new_mode_to_net(), test_choosing_a_book_sends_open_with_its_index(), test_confirmed_delete_removes_the_book_and_resyncs(), test_failed_delete_shows_the_error_and_keeps_the_count() (+9 more)
 
-### Community 23 - "spawn"
-Cohesion: 0.20
-Nodes (3): halt(), spawn(), start()
-
 ### Community 25 - "Ui"
-Cohesion: 0.06
-Nodes (48): ReadingFrame, active, piece, show_wpm, state, word, wpm, Outcome (+40 more)
+Cohesion: 0.07
+Nodes (41): Outcome, command, index, Ui, return_to_, book_label(), draw_about(), draw_brightness() (+33 more)
 
 ### Community 26 - "rsvp_view.cpp"
 Cohesion: 0.16
@@ -242,16 +235,16 @@ Cohesion: 0.07
 Nodes (32): BrightnessMode, Auto, Manual, cycle_brightness(), cycle_wifi(), display_register(), sanitize(), Settings (+24 more)
 
 ### Community 30 - "app_adapters.cpp"
-Cohesion: 0.13
-Nodes (6): GpioPins, SerialLog, SoftAp, pin_, StorageLibrary, text_
+Cohesion: 0.12
+Nodes (7): GpioPins, NvsSettings, SerialLog, SoftAp, pin_, StorageLibrary, text_
 
 ### Community 31 - "storage_books.cpp"
 Cohesion: 0.14
 Nodes (20): base_name(), book_count(), book_path_for(), BookText, data, size, find_book(), free_bytes() (+12 more)
 
 ### Community 32 - "tasks.cpp"
-Cohesion: 0.13
-Nodes (10): log, capped(), display_task(), feed(), input_task(), net_task(), on_book_saved(), rsvp_task() (+2 more)
+Cohesion: 0.14
+Nodes (13): log, capped(), display_task(), feed(), halt(), input_task(), net_task(), on_book_saved() (+5 more)
 
 ### Community 33 - "test_reader.cpp"
 Cohesion: 0.06
@@ -277,12 +270,16 @@ Nodes (10): Ajustes (persistence), Before flashing, Biblioteca and Wi-Fi, Boot, 
 Cohesion: 0.07
 Nodes (16): FakeClock, now_, FakeQueue, capacity_, item_size_, items_, IQueue, Queue (+8 more)
 
+### Community 39 - "ReadingFrame"
+Cohesion: 0.20
+Nodes (7): ReadingFrame, active, piece, show_wpm, state, word, wpm
+
 ### Community 40 - "Wi-Fi soft AP and book upload"
 Cohesion: 0.25
 Nodes (7): Before you start (blockers found while writing this), Conversion in the phone, Measurements to record, PIN and session, Session start, Upload and storage, Wi-Fi soft AP and book upload
 
 ### Community 41 - "App"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (21): App, ap, contrast, display_wake, edge_port, edges, input, library (+13 more)
 
 ### Community 42 - "Command"
@@ -310,8 +307,8 @@ Cohesion: 0.12
 Nodes (21): test_boot_failure_with_wifi_on_is_logged(), test_boot_with_automatico_keeps_the_ap_off(), test_boot_with_wifi_on_starts_the_ap(), test_bounce_that_returns_to_idle_posts_nothing(), test_deferred_stop_sets_the_wait_to_the_remaining_time(), test_ignores_edge_with_button_index_out_of_range(), test_inactivity_check_survives_a_32_bit_clock_wrap(), test_inactivity_ends_an_automatico_session_and_tells_the_ui() (+13 more)
 
 ### Community 49 - "InputService"
-Cohesion: 0.09
-Nodes (15): ButtonState, debouncer, pressed_at, InputService, InputService::InputService(), log_, pins_, settling_ (+7 more)
+Cohesion: 0.07
+Nodes (20): ButtonState, debouncer, pressed_at, InputService, InputService::InputService(), log_, pins_, settling_ (+12 more)
 
 ### Community 50 - "Event"
 Cohesion: 0.10
@@ -342,8 +339,8 @@ Cohesion: 0.14
 Nodes (12): SettingsStore, last, ok, saves, UiFixture, display, lib, log (+4 more)
 
 ### Community 57 - "RsvpService"
-Cohesion: 0.16
-Nodes (10): RsvpService, kWpmLabelMs, label_until_ms_, library_, log_, pieces_, reader_, title_ (+2 more)
+Cohesion: 0.17
+Nodes (9): RsvpService, kWpmLabelMs, label_until_ms_, library_, log_, pieces_, reader_, title_ (+1 more)
 
 ### Community 59 - "FakeNotifier"
 Cohesion: 0.22
@@ -357,17 +354,17 @@ Nodes (9): RsvpCmd, Close, Down, Open, Select, Up, RsvpMsg, cmd (+1 more)
 Cohesion: 0.20
 Nodes (10): NetCmd, ApplyWifi, Boot, SavedOnUploadScreen, StartUpload, StopUpload, NetMsg, cmd (+2 more)
 
-### Community 62 - "test_inactivity.cpp"
-Cohesion: 0.17
-Nodes (10): InactivityTimer, last_ms_, limit_ms_, running_, test_activity_restarts_the_window(), test_does_not_expire_before_the_limit(), test_expires_exactly_at_the_limit(), test_stop_disarms_the_timer() (+2 more)
+### Community 63 - "UiService::UiService"
+Cohesion: 0.22
+Nodes (3): IDisplayControl, ISettingsStore, UiService::UiService()
 
 ### Community 65 - "Log"
 Cohesion: 0.25
 Nodes (5): Log, lines, test_logs_the_drop_when_the_ui_queue_is_full(), test_save_failure_is_logged_not_ignored(), test_settings_save_failure_is_logged_and_still_applied()
 
 ### Community 66 - "LiPo + TP4056 charging (bring-up, ESP32 NOT connected)"
-Cohesion: 0.29
-Nodes (6): Cell change (2026-11-26), Checklist, LiPo + TP4056 charging (bring-up, ESP32 NOT connected), Next, Procedure, Result: battery direct to the devkit 5V pin does NOT work
+Cohesion: 0.22
+Nodes (8): Cell change (2026-11-26), Checklist, Incident: fire on the TP4056 (2026-11-26), LiPo + TP4056 charging (bring-up, ESP32 NOT connected), Next, Procedure, Result: battery direct to the devkit 5V pin does NOT work, Working power path (2026-11-27)
 
 ### Community 67 - "Snapshot"
 Cohesion: 0.22
@@ -397,10 +394,6 @@ Nodes (10): IClock, Clock, Mutex, handle_, Queue, handle_, item_size_, TaskNotif
 Cohesion: 0.50
 Nodes (3): Checklist, INMP441 microphone (bring-up), Wiring
 
-### Community 75 - "DisplayControl"
-Cohesion: 0.29
-Nodes (5): DisplayControl, calls, last, Pins, level
-
 ### Community 77 - "ViewFixture"
 Cohesion: 0.29
 Nodes (6): ViewFixture, display, mutex, seen, snap, view
@@ -419,23 +412,23 @@ Nodes (5): State, Author, Body, PagesOrStart, Title
 
 ## Knowledge Gaps
 - **299 isolated node(s):** `debouncer`, `pressed_at`, `pins_`, `ui_out_`, `log_` (+294 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 669 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 671 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **6 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `App` connect `App` to `tasks.cpp`, `NetService`, `rtos_freertos.cpp`, `InputService`, `Event`, `ISettingsStore`, `UiService`, `ViewModel`, `spawn`, `RsvpService`, `RsvpMsg`, `NetMsg`, `app_adapters.cpp`?**
+- **Why does `App` connect `App` to `tasks.cpp`, `NetService`, `rtos_freertos.cpp`, `InputService`, `Event`, `UiService`, `ViewModel`, `RsvpService`, `RsvpMsg`, `NetMsg`, `app_adapters.cpp`?**
   _High betweenness centrality (0.061) - this node is a cross-community bridge._
 - **What connects `debouncer`, `pressed_at`, `pins_` to the rest of the system?**
   _299 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `build_enclosure.py` be split into smaller, more focused modules?**
   _Cohesion score 0.07764705882352942 - nodes in this community are weakly interconnected._
-- **Why does `Event` connect `Event` to `INet`, `NetService`, `App`, `cstdint`, `InputService`, `InputFixture`, `UiService`, `.take`, `RsvpFixture`, `RsvpService`, `ILibrary`, `test_ui.cpp`, `Ui`?**
+- **Why does `Event` connect `Event` to `NetService`, `App`, `cstdint`, `InputService`, `InputFixture`, `UiService`, `.take`, `RsvpFixture`, `RsvpService`, `ILibrary`, `test_ui.cpp`, `Ui`?**
   _High betweenness centrality (0.042) - this node is a cross-community bridge._
 - **Should `Leeloo Roadmap` be split into smaller, more focused modules?**
   _Cohesion score 0.06134371957156767 - nodes in this community are weakly interconnected._
 - **Why does `InputService` connect `InputService` to `App`, `cstdint`, `Event`, `InputFixture`, `UiService`?**
   _High betweenness centrality (0.030) - this node is a cross-community bridge._
 - **Should `Menu` be split into smaller, more focused modules?**
-  _Cohesion score 0.052525252525252523 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05878084179970972 - nodes in this community are weakly interconnected._
