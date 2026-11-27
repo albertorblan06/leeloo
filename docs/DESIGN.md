@@ -85,7 +85,7 @@ The display is 1-bit. Anything that looks like a "color" on the web becomes blac
 
 - Screen: 128 x 64 px. Side margin 2 px. Usable width 124 px.
 - Status bar: y 0–9, followed by a 1 px rule at y 11.
-- List area: y 13–63. Holds 4 rows of 12 px (y 14, 26, 38, 50) plus a scroll gutter 3 px wide at x 124–127 when the list is longer than 4 items.
+- List area: y 13–63. Holds 4 rows of 12 px (y 14, 26, 38, 50) . Screens with a parent keep the fourth row for `< Atrás`; their lists scroll through the three rows above it. There is no scroll indicator, and rows span the full 128 px.
 - Font: a bitmap font with the Spanish glyph set (á é í ó ú ñ ü Ñ ¿ ¡). Use a 6 px wide, 10 px tall face for body text and labels. Confirm the chosen u8g2 font contains every glyph in §7 before use; if it does not, fall back to a font that does and record it here.
 
 ### 3.2 Hierarchy
@@ -111,24 +111,22 @@ The focused row is the OLED equivalent of Loudop's `--focus`. Do not draw an ext
 
 ### 3.4 Motion
 
-No animation. The screen changes instantly. Animation costs I2C time that belongs to RSVP timing (ARCHITECTURE §4.2, I2C bus owner).
+A brief horizontal slide separates two menu screens: going forward, the new screen enters from the right; going back (`< Atrás`, long press, dismissing a message), from the left. It is 8 frames of 16 px, a full 1 KiB dump each, so about 200 ms of I2C time per transition (ARCHITECTURE §4.2, I2C bus owner); input is queued meanwhile. Never animate into or out of RSVP reading, nor its per-word updates: that bus time belongs to RSVP timing.
 
 ## 4. Main menu
 
-Proposed items, in order. Confirm with the user (see §9).
+Text-only list for the three-button firmware. There is no title or divider, so the destinations use the full height (four visible rows at y 7, 22, 37, 52) and the focused row is inverted. There are five items; the list scrolls to keep the focus visible.
 
 ```
- WPM 300              87%      <- status bar (y 0-9)
------------------------------   <- rule (y 11)
- Continuar                      <- focused (inverted)
- Biblioteca                     >
- Subir libro                    >
- Ajustes                        >
+ Leer                       >   <- focused (inverted), y 7
+ Biblioteca                 >   y 22
+ Grabadora                  >   y 37
+ Ajustes                    >   y 52
+ (Info follows when the list scrolls)
 ```
 
-- Rotation: move cursor. Click: open the item.
+- UP/DOWN: move cursor. SELECT: open the item.
 - Long press: enter deep sleep (ARCHITECTURE §4.3). Show a one-line confirmation only if the wake gesture needs explaining; decide at hardware gate.
-- "Continuar" is shown only when a progress record exists. Without it the list starts at "Biblioteca".
 
 ## 5. Other screens (shared rules)
 
@@ -136,19 +134,21 @@ Each screen follows §3. Specific layouts are defined when each state is built; 
 
 | Screen | Rule |
 |---|---|
-| Boot | Only the text `Leeloo`, centered, 12 px high. No progress bar. |
+| Boot | The Loudop boot animation, redrawn for 1 bit (see below): about 1.9 s, played while storage mounts. No progress bar. |
 | Library | Title row, then list of books. Truncate titles. Empty state: `Sin libros` plus one line of help. |
 | Reading | Only WPM and battery %. The word is the largest text on screen. |
 | Paused | Progress and time may share the screen with controls, as allowed by ARCHITECTURE §3.2. Use one section per screen; rotation pages between them. |
 | Settings | Rows with values on the right (§3.2). Toggles as `Sí` / `No`. |
-| Wi-Fi Upload | Show SSID, PIN, and address on three lines. Long press exits (ARCHITECTURE §4.3). |
+| Wi-Fi session (Añadir libro, Enviar al móvil) | Three lines: `Red: Leeloo`, `PIN: ####`, `Abre 192.168.4.1`, then `< Atrás`. Long press exits (ARCHITECTURE §4.3). |
 | Error | One line title in uppercase, up to two lines of help in Spanish, then `Pulsa para volver`. |
+
+**Boot logo.** Loudop's mark is a dot with a thin guide above and another below (`web/src/components/Mark.tsx`, 64-unit box); its boot screen (`BootSplash.tsx`, `index.css`) turns the lower guide like a clock hand and types the name. On the panel, at 1:1 on the 64 px height: dot radius 8 px centred at x 36, y 32; the fixed guide 2 × 12 px above it (radius 12..23); the hand is the same guide, starting stacked on it and turning clockwise through the right side to hang below the dot (0 → 180° in one eased 900 ms turn with Loudop's `cubic-bezier(.22,1,.36,1)`; Loudop itself turns it in 450 ms steps that follow real loading progress, which a fixed boot does not have); the word `leeloo`, lowercase like Loudop's `loudop`, types out to the right one letter every 110 ms; then the dot beats once (Loudop's keyframes 1 → 1.13 → 0.98 → 1.07 → 1 over 340 ms, linear between them; only the dot scales here, where Loudop scales the whole logo, because at this size the radius just goes 8, 9, 8, 9, 8); the logo rests until 1.9 s. The timeline and geometry are pure and tested (`lib/boot_anim`); the drawing is `display::boot_animation_step()` in `src/display_ui.cpp`. The word sits beside the mark instead of below it, which would not fit in 64 px. The animation is clocked by time, so a slow mount skips frames instead of lengthening the boot.
 
 Settings mapping from Loudop's Preferencias screen:
 
 | Loudop | Leeloo OLED |
 |---|---|
-| Modo: Sistema / Claro / Oscuro | Not ported: the device is always dark. Nearest setting is Brillo: `< Auto >` / `< Manual >` (ARCHITECTURE §3.2) |
+| Modo: Sistema / Claro / Oscuro | Not ported: the device is always dark. The nearest setting is Brillo: one level, `< 80% >` (DEVICE-MENU §2) |
 | Avisos: Sí / No per item | Háptico: `Sí` / `No` |
 | Sub-screens with chevron | Submenu with `>` |
 
@@ -156,15 +156,15 @@ Settings mapping from Loudop's Preferencias screen:
 
 From ARCHITECTURE §4.3:
 
-- Rotate: move in menus, change WPM while reading, seek while paused.
+- UP/DOWN: move in menus, change WPM while reading, seek while paused.
 - Click: select in menus, pause while reading, resume while paused.
-- Long press: back to main menu from reading or paused; exit Wi-Fi; sleep from main menu.
+- Long press: always back one level (DEVICE-MENU §3). From reading or paused it returns to the book list; on a Wi-Fi screen it cancels the session; while recording it stops and saves; on the main menu it asks to switch the device off.
 
 Haptics on select: optional short pulse, off by default until measured on hardware (`haptic service`, ARCHITECTURE §4.2).
 
 ## 7. Copy and Spanish strings
 
-- Sentence case. Verbs in the infinitive for actions ("Subir libro"), nouns for destinations ("Biblioteca", "Ajustes").
+- Sentence case. Verbs in the infinitive for actions ("Añadir libro", "Borrar libro"), nouns for destinations ("Biblioteca", "Grabadora", "Ajustes"). One word per thing: libro, grabación, móvil, dispositivo.
 - No punctuation at the end of menu labels. Help text ends with a period.
 - Use `¿` and `¡` only in full sentences in help text and error text.
 - Glyph set the font must cover: `á é í ó ú ü ñ Á É Í Ó Ú Ü Ñ ¿ ¡`, plus `…` for truncation.
@@ -180,7 +180,7 @@ Haptics on select: optional short pulse, off by default until measured on hardwa
 
 ## 9. Open questions
 
-1. **Main menu items.** Confirm: Continuar, Biblioteca, Subir libro, Ajustes. Should Deep sleep be a menu item or long press only (current spec)?
+1. **Main menu items.** Decided: Leer, Biblioteca, Grabadora, Ajustes, Info. No «Continuar»; switching off is a long press on the root (no menu row), documented in Info.
 2. **Font.** Pick the u8g2 bitmap font after checking the Spanish glyph set against §7.
 3. **Web app.** Should the phone web app use Loudop's serif for titles, or sans only? Serif is measured; Charter is not bundled on all phones.
 4. **Web theme storage.** `localStorage` on the phone is assumed for the Claro/Oscuro choice. The page is served from the device's temporary AP, so its origin changes between sessions and the choice may reset; if that is unacceptable, the fallback is following the system theme only.
