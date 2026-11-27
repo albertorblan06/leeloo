@@ -91,7 +91,7 @@ Pure logic lives in `lib/<module>/` without `Arduino.h` or FreeRTOS includes. Ha
 
 **Tasks (in order):**
 1. Word tokenizer over normalized UTF-8.
-2. WPM timing (150–800, default 300, step 25) and punctuation pauses.
+2. WPM timing (100–800, default 300, configurable step 5/10/25/50/100, initially 25) and punctuation pauses.
 3. Focal-letter selection.
 4. Pause/resume and word seeking.
 5. Completion percentage and estimated page.

@@ -12,8 +12,8 @@ The system consists of:
 
 1. **Leeloo device:** ESP32-S3, OLED, EC11 rotary encoder with push-button, battery/power circuitry, and internal flash.
 2. **Device firmware:** Arduino-ESP32 framework using the underlying FreeRTOS scheduler and tasks.
-3. **Phone web application:** Served by the ESP32 while upload mode is active. It converts a user-selected PDF in the browser and transfers one normalized text book to the device.
-4. **Local storage:** LittleFS for books, settings, and reading progress.
+3. **Phone web application:** Served by the ESP32 during a Wi-Fi session. It converts a user-selected PDF in the browser and transfers one normalized text book to the device, or receives the WAV the device recorded.
+4. **Local storage:** LittleFS for books, settings, reading progress, and one pending WAV recording.
 5. **Development interface:** USB serial connection to a Mac for flashing and diagnostics.
 6. **Ambient light sensor and haptic driver:** two additional I2C peripherals, both provisional until the hardware gate (sections 3.5 and 3.6).
 
@@ -52,9 +52,9 @@ The display is information-constrained. Reading mode therefore prioritizes only 
 - TP4056 USB-C 5 V / 1 A charging module with protection.
 - Battery percentage is an estimate unless a dedicated fuel gauge is later added.
 - The light sensor and haptic driver must be placed in their lowest-power state before deep sleep. The haptic motor current is a budget item to be measured on the real prototype, not assumed.
-- Deep sleep is entered by a long press from the main menu.
+- Switching off is deep sleep, entered by a long press on the main menu and a confirmation (`¿Apagar Leeloo?`, `No` focused). Before sleeping the firmware stops Wi-Fi, switches the OLED off and unmounts LittleFS.
 - A long press during Wi-Fi mode exits Wi-Fi mode; a long press during reading or pause returns to the main menu.
-- Wake is triggered by holding the encoder button during deep sleep, subject to the selected GPIO wake capability.
+- Wake is triggered by holding SELECT (GPIO6, RTC-capable, ext0 wake on low with the RTC pull-up). After waking the button must still be held for about a second, otherwise the device sleeps again.
 
 The charging/power path must be electrically validated before connecting the battery to the prototype board.
 
@@ -81,7 +81,7 @@ The firmware uses Arduino-ESP32 while explicitly using FreeRTOS tasks, queues, e
 Logical core ownership:
 
 - **Core 0:** Wi-Fi soft access point, HTTP server, upload processing, and network lifecycle.
-- **Core 1:** UI state machine, OLED rendering, RSVP timing, text navigation, and local input handling.
+- **Core 1:** UI state machine, OLED rendering, RSVP timing, text navigation, local input handling, and the lower-priority audio recorder.
 
 Core pinning is an optimization and isolation boundary, not a license to share mutable state without synchronization. Cross-core communication uses bounded queues or protected state objects.
 
@@ -94,6 +94,7 @@ Core pinning is an optimization and isolation boundary, not a license to share m
 - **RSVP engine:** strict word tokenization, focal-letter highlighting, WPM timing, punctuation pauses, speed changes, pause/resume, and word seeking.
 - **Book service:** metadata parsing, UTF-8 text access, library enumeration, deletion, and progress lookup.
 - **Storage service:** LittleFS access, atomic writes, settings, and progress records.
+- **Audio recorder:** I2S capture from the INMP441 (GPIO15/16/17) into a temporary WAV in LittleFS, with pause, limits and a single stored WAV. The capture rules are pure logic in `lib/app/recording_service.*` and `lib/recording`; only the I2S driver and the file calls are hardware adapters (`src/audio_adapters.*`).
 - **Wi-Fi/upload service:** temporary AP, per-session PIN, browser assets, upload validation, and clean shutdown.
 - **Ambient light service:** low-rate sensor sampling, smoothing/hysteresis, and brightness-level requests to the display service when brightness mode is Auto.
 - **Haptic service:** effect queue, rate limiting, and driver control.
@@ -103,10 +104,10 @@ Core pinning is an optimization and isolation boundary, not a license to share m
 
 ### 4.3 Input semantics
 
-- Boot: show the text logo `Leeloo` until the main menu is ready.
+- Boot: play the Loudop-style logo animation (about 1.9 s, `docs/DESIGN.md` §5) while storage mounts, then show the main menu.
 - Rotation in menus: move selection.
 - Click in menus: select.
-- Rotation while RSVP is playing: increase/decrease WPM in 25-WPM steps.
+- UP/DOWN while RSVP is playing: increase/decrease WPM by the configured step (5, 10, 25, 50 or 100; default 25) within 100–800. A held button repeats after 400 ms and then every 150 ms at a constant rate.
 - Click while reading: pause.
 - Rotation while paused: seek by word using a configurable step; the initial default is one word per detent.
 - Click while paused: resume.
@@ -150,6 +151,16 @@ Scanned PDFs/OCR are out of scope. Modern iOS Safari and Android Chrome are the 
 - The PIN is shown on the device and required by the web page before upload.
 - No credentials persist because the device does not join a home network in the MVP.
 - Wi-Fi shuts down when the user exits upload mode or the session is explicitly cancelled.
+- `Grabadora > Enviar al móvil` uses the same AP, PIN and cookie. The browser downloads the whole WAV, checks it against its own header, then tells the device how many bytes it received. The device deletes its copy only if that count equals its file size. An interrupted or truncated download leaves the WAV on the device.
+
+### 5.3 Transcription and summary
+
+The recording received by the phone page can be transcribed and summarized there. The device is not involved: the page sends the WAV to Groq's `audio/transcriptions` endpoint (`whisper-large-v3-turbo`, Spanish) and then the text to `chat/completions` (`openai/gpt-oss-20b`, low reasoning effort) for a short Spanish summary. Both ids live in `web/src/groq.js` only and were checked against Groq's documentation on 2026-11-27.
+
+- Groq needs internet, and the phone is joined to the device's Wi-Fi, which has none. The page relies on the phone sending these requests over mobile data while joined to the access point. Android and iOS differ in whether they do; when it fails the page says so (`No hay internet. Activa los datos móviles…`) and the recording can still be played and downloaded.
+- Groq answers browser requests (a preflight from `http://192.168.4.1` returns `access-control-allow-origin: *` for both endpoints, checked on 2026-11-27).
+- The Groq key is pasted by the user and kept only in the phone's `localStorage` for the device's own origin; it is sent only in the `Authorization` header, never in a URL or the device. The page warns that the audio goes to an external service.
+- Limits: 25 MB per file on the free tier (a 10-minute 16 kHz recording is 19.2 MB, so it fits). If the summary fails, the transcript is still shown.
 
 ## 6. Storage and persistence
 
@@ -161,14 +172,16 @@ Initial conservative limits to validate during implementation:
 - Maximum library: 20 books, subject to actual partition capacity.
 - Maximum filename: 48 bytes after UTF-8-safe sanitization.
 - Reserve at least 2 MiB for firmware/recovery and retain a measurable free-space threshold.
+- Keep one pending recording. Record mono 16-bit PCM at 16 kHz (32 000 bytes per second, the rate speech recognition works best with). The length is computed from the free space when the recording starts: whole seconds that fit after the 2 MiB reserve, a 16 KiB write margin and the 44-byte header, at most 10 minutes. Under 5 seconds the device asks the user to free space; it never deletes books. If the disk fills or the microphone fails mid-recording, what was captured is saved.
+- Only one long storage operation runs at a time (book upload, capture, removing the WAV); a second one is refused with `busy`. A recording paused for 5 minutes is saved, so it cannot hold the storage indefinitely.
 
 These are starting limits, not hardware guarantees; the partition table and upload validator must expose them as constants.
 
 Required persistence:
 
-- Settings: WPM, brightness mode (auto or manual), manual brightness level, haptics enabled, seek step, configured time, and display preferences.
+- Settings: brightness level, Wi-Fi mode, reading-speed step (the last used speed is stored separately), haptics enabled, configured time, and display preferences.
 - Per-book progress: exact byte offset at the current cursor, saved when leaving a book and on controlled shutdown.
-- Atomic temporary-file-then-rename upload and metadata writes.
+- Atomic temporary-file-then-rename upload and metadata writes. A recording is written to a temporary file, its header patched with the real length, and renamed only on success; the temporary file is removed at boot.
 - Deletion must complete through the storage service and report failure rather than silently continuing.
 - Format/clear requires confirmation and preserves device settings by default; a separate factory-reset behavior may be added later.
 
@@ -176,9 +189,10 @@ On power loss, incomplete temporary files are ignored/removed during boot. A fil
 
 ## 7. RSVP behavior
 
-- Operational range: 150–800 WPM.
-- Default: 300 WPM.
-- Adjustment: 25 WPM.
+- Operational range: 100–800 WPM (PPM in the Spanish UI). Every step divides 700, so both bounds are reachable counting from 100.
+- Initial speed: 300 WPM until the first change. The last-used speed is global across books.
+- Adjustment: configurable 5/10/25/50/100 WPM, default 25 (Ajustes > Salto por pulsación).
+- The last-used speed is saved when leaving or finishing a book, not when pausing, and only if it changed. `RsvpService` owns it (`ISpeedStore`); the menu never holds a copy.
 - Token: exactly one word.
 - Spanish punctuation and sentence boundaries add configurable pauses.
 - Long words and numeric tokens may receive bounded extra dwell time.
@@ -214,5 +228,5 @@ Because UTF-8 characters may occupy multiple bytes, offsets must always be valid
 - OTA updates.
 - Home-network/cloud connectivity.
 - Custom enclosure design.
-- Audio output and motion/gesture sensing (IMU) in the MVP.
+- On-device audio playback, on-device transcription, and motion/gesture sensing (IMU) in the MVP. Transcription and summary are done by the phone page with the Groq API (§5.3), never by the firmware.
 - Production security hardening.

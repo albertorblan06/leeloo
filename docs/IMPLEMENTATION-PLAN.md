@@ -66,7 +66,7 @@ This plan follows the locked baseline in [`ARCHITECTURE.md`](ARCHITECTURE.md). H
 - Integrate menu, Library, Upload Book, Settings, Reading, Paused, and Error states.
 - Add temporary AP lifecycle and long-press cancellation.
 - Add battery estimate, low-battery behavior, deep sleep, and encoder wake.
-- Add the Auto/Manual brightness mode and the haptics setting to Settings; put the sensor and haptic driver in low-power state before deep sleep.
+- Add the haptics setting to Settings (brightness is a single level, no Auto mode: there is no light sensor wired); put the sensor and haptic driver in low-power state before deep sleep.
 - Measure that I2C traffic does not delay RSVP word timing.
 - Verify progress persistence on normal exit and controlled power interruption.
 
