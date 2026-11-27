@@ -181,11 +181,49 @@ void test_faster_clamps_at_800_wpm() {
   TEST_ASSERT_EQUAL_UINT(800, r.wpm());
 }
 
-void test_slower_clamps_at_150_wpm() {
+void test_slower_clamps_at_100_wpm() {
   const char* body = "uno";
   Reader r(body, std::strlen(body), 0, kStartMs);
   for (int i = 0; i < 40; ++i) r.slower();
-  TEST_ASSERT_EQUAL_UINT(150, r.wpm());
+  TEST_ASSERT_EQUAL_UINT(100, r.wpm());
+}
+
+void test_speed_moves_by_the_configured_step() {
+  const char* body = "uno";
+  Reader r(body, std::strlen(body), 0, kStartMs, nullptr, 300, 100);
+  r.faster();
+  TEST_ASSERT_EQUAL_UINT(400, r.wpm());
+  r.slower();
+  r.slower();
+  TEST_ASSERT_EQUAL_UINT(200, r.wpm());
+}
+
+void test_every_step_reaches_both_speed_bounds() {
+  const char* body = "uno";
+  for (const std::uint32_t step : {5u, 10u, 25u, 50u, 100u}) {
+    Reader r(body, std::strlen(body), 0, kStartMs, nullptr, 300, step);
+    for (int i = 0; i < 200; ++i) r.faster();
+    TEST_ASSERT_EQUAL_UINT(800, r.wpm());
+    for (int i = 0; i < 200; ++i) r.slower();
+    TEST_ASSERT_EQUAL_UINT(100, r.wpm());
+  }
+}
+
+void test_initial_speed_is_aligned_to_the_step_and_clamped() {
+  const char* body = "uno";
+  Reader aligned(body, std::strlen(body), 0, kStartMs, nullptr, 340, 100);
+  TEST_ASSERT_EQUAL_UINT(300, aligned.wpm());
+  Reader low(body, std::strlen(body), 0, kStartMs, nullptr, 20, 25);
+  TEST_ASSERT_EQUAL_UINT(100, low.wpm());
+  Reader high(body, std::strlen(body), 0, kStartMs, nullptr, 5000, 25);
+  TEST_ASSERT_EQUAL_UINT(800, high.wpm());
+}
+
+void test_initial_speed_sets_the_word_period() {
+  const char* body = "uno dos";
+  Reader r(body, std::strlen(body), 0, kStartMs, nullptr, 600, 100);  // 100 ms per word
+  TEST_ASSERT_FALSE(r.tick(kStartMs + 99));
+  TEST_ASSERT_TRUE(r.tick(kStartMs + 100));
 }
 
 void test_speed_change_applies_to_next_word() {
@@ -378,7 +416,11 @@ int main(int, char**) {
   RUN_TEST(test_resume_after_finish_stays_finished);
   RUN_TEST(test_faster_steps_by_25_wpm);
   RUN_TEST(test_faster_clamps_at_800_wpm);
-  RUN_TEST(test_slower_clamps_at_150_wpm);
+  RUN_TEST(test_slower_clamps_at_100_wpm);
+  RUN_TEST(test_speed_moves_by_the_configured_step);
+  RUN_TEST(test_every_step_reaches_both_speed_bounds);
+  RUN_TEST(test_initial_speed_is_aligned_to_the_step_and_clamped);
+  RUN_TEST(test_initial_speed_sets_the_word_period);
   RUN_TEST(test_speed_change_applies_to_next_word);
   RUN_TEST(test_reads_spanish_words_with_multibyte_letters);
   RUN_TEST(test_progress_percent_follows_the_shown_word);

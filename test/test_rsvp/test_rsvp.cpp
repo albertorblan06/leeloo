@@ -339,10 +339,44 @@ void test_word_delay_is_200ms_at_300_wpm() {
 }
 
 void test_word_delay_clamps_wpm_to_bounds() {
-  TEST_ASSERT_EQUAL_UINT32(400, leeloo::rsvp::word_delay_ms(0));       // 150 WPM
-  TEST_ASSERT_EQUAL_UINT32(400, leeloo::rsvp::word_delay_ms(150));
+  TEST_ASSERT_EQUAL_UINT32(600, leeloo::rsvp::word_delay_ms(0));       // 100 WPM
+  TEST_ASSERT_EQUAL_UINT32(600, leeloo::rsvp::word_delay_ms(100));
   TEST_ASSERT_EQUAL_UINT32(75, leeloo::rsvp::word_delay_ms(800));
   TEST_ASSERT_EQUAL_UINT32(75, leeloo::rsvp::word_delay_ms(10000));   // 800 WPM
+}
+
+void test_normalize_wpm_step_accepts_only_supported_steps() {
+  for (const std::uint32_t step : leeloo::rsvp::kWpmSteps) {
+    TEST_ASSERT_EQUAL_UINT32(step, leeloo::rsvp::normalize_wpm_step(step));
+  }
+  TEST_ASSERT_EQUAL_UINT32(25, leeloo::rsvp::normalize_wpm_step(0));
+  TEST_ASSERT_EQUAL_UINT32(25, leeloo::rsvp::normalize_wpm_step(7));
+  TEST_ASSERT_EQUAL_UINT32(25, leeloo::rsvp::normalize_wpm_step(200));
+}
+
+void test_every_step_reaches_both_bounds_counting_from_the_minimum() {
+  for (const std::uint32_t step : leeloo::rsvp::kWpmSteps) {
+    TEST_ASSERT_EQUAL_UINT32(leeloo::rsvp::kMinWpm, leeloo::rsvp::normalize_wpm(0, step));
+    TEST_ASSERT_EQUAL_UINT32(leeloo::rsvp::kMaxWpm, leeloo::rsvp::normalize_wpm(100000, step));
+    TEST_ASSERT_EQUAL_UINT32(0, (leeloo::rsvp::kMaxWpm - leeloo::rsvp::kMinWpm) % step);
+  }
+}
+
+void test_normalize_wpm_rounds_to_the_nearest_step_from_100() {
+  TEST_ASSERT_EQUAL_UINT32(300, leeloo::rsvp::normalize_wpm(300, 100));
+  TEST_ASSERT_EQUAL_UINT32(300, leeloo::rsvp::normalize_wpm(340, 100));   // below the midpoint
+  TEST_ASSERT_EQUAL_UINT32(400, leeloo::rsvp::normalize_wpm(350, 100));   // midpoint rounds up
+  TEST_ASSERT_EQUAL_UINT32(315, leeloo::rsvp::normalize_wpm(317, 5));
+  TEST_ASSERT_EQUAL_UINT32(350, leeloo::rsvp::normalize_wpm(333, 50));
+}
+
+void test_normalize_wpm_with_an_invalid_step_uses_the_default_step() {
+  TEST_ASSERT_EQUAL_UINT32(325, leeloo::rsvp::normalize_wpm(320, 7));
+}
+
+void test_word_delay_follows_the_selected_step() {
+  TEST_ASSERT_EQUAL_UINT32(200, leeloo::rsvp::word_delay_ms(310, 100));  // -> 300
+  TEST_ASSERT_EQUAL_UINT32(150, leeloo::rsvp::word_delay_ms(400, 100));
 }
 
 void test_word_delay_snaps_wpm_to_25_steps() {
@@ -453,6 +487,11 @@ int main() {
   RUN_TEST(test_word_delay_is_200ms_at_300_wpm);
   RUN_TEST(test_word_delay_clamps_wpm_to_bounds);
   RUN_TEST(test_word_delay_snaps_wpm_to_25_steps);
+  RUN_TEST(test_normalize_wpm_step_accepts_only_supported_steps);
+  RUN_TEST(test_every_step_reaches_both_bounds_counting_from_the_minimum);
+  RUN_TEST(test_normalize_wpm_rounds_to_the_nearest_step_from_100);
+  RUN_TEST(test_normalize_wpm_with_an_invalid_step_uses_the_default_step);
+  RUN_TEST(test_word_delay_follows_the_selected_step);
   RUN_TEST(test_ends_sentence_for_period);
   RUN_TEST(test_ends_sentence_for_question_and_exclamation);
   RUN_TEST(test_ends_sentence_for_ellipsis);

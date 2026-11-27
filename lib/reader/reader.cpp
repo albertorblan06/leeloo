@@ -52,8 +52,12 @@ std::optional<std::size_t> body_offset(const char* text, std::size_t size) {
 }
 
 Reader::Reader(const char* body, std::size_t size, std::size_t resume_at, std::uint32_t now_ms,
-               PieceCounter pieces)
-    : body_(body), size_(size), pieces_fn_(pieces) {
+               PieceCounter pieces, std::uint32_t initial_wpm, std::uint32_t wpm_step)
+    : body_(body),
+      size_(size),
+      pieces_fn_(pieces),
+      wpm_step_(rsvp::normalize_wpm_step(wpm_step)),
+      wpm_(rsvp::normalize_wpm(initial_wpm, wpm_step_)) {
   const bool usable = resume_at < size && !is_continuation(body[resume_at]);
   const std::optional<rsvp::WordSpan> first = rsvp::next_word(body_, size_, usable ? resume_at : 0);
   if (!first) {
@@ -102,11 +106,11 @@ void Reader::resume(std::uint32_t now_ms) {
 }
 
 void Reader::faster() {
-  if (wpm_ < rsvp::kMaxWpm) wpm_ += rsvp::kWpmStep;
+  wpm_ = rsvp::normalize_wpm(wpm_ + wpm_step_, wpm_step_);
 }
 
 void Reader::slower() {
-  if (wpm_ > rsvp::kMinWpm) wpm_ -= rsvp::kWpmStep;
+  wpm_ = rsvp::normalize_wpm(wpm_ > wpm_step_ ? wpm_ - wpm_step_ : 0, wpm_step_);
 }
 
 void Reader::step_sentence(int direction) {
@@ -156,7 +160,7 @@ std::uint32_t Reader::hold_ms(const rsvp::WordSpan& span) const {
 // time does not slow the WPM down. A longer stall restarts the pace from now.
 void Reader::show(const rsvp::WordSpan& span, std::uint32_t planned_ms, std::uint32_t now_ms) {
   current_ = span;
-  beat_ms_ = rsvp::word_delay_ms(wpm_);
+  beat_ms_ = rsvp::word_delay_ms(wpm_, wpm_step_);
   pieces_ = pieces_fn_ ? std::max<std::uint32_t>(1, pieces_fn_(body_ + span.start, span.length)) : 1;
   piece_ = 0;
   const std::uint32_t hold = hold_ms(span);

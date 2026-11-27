@@ -27,7 +27,7 @@ Pure logic lives in `lib/<module>/` and must not include `Arduino.h` or FreeRTOS
 
 ### Required edge cases
 
-Empty and oversize input; multibyte Spanish characters (á, ñ, ¿, ¡); offsets on UTF-8 code-point boundaries; WPM bounds 150–800 in steps of 25; atomic-write failure paths.
+Empty and oversize input; multibyte Spanish characters (á, ñ, ¿, ¡); offsets on UTF-8 code-point boundaries; WPM bounds 100–800 with steps 5/10/25/50/100 (both bounds reachable from 100); atomic-write failure paths.
 
 ## Graph
 
