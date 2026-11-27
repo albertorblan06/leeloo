@@ -30,10 +30,10 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE-ANSWERS.md": {
-    "mtime": 1792497092.2442696,
-    "seen": 1792497328.603765,
-    "ast_hash": "6c68579a2ba35b6e814742fc6f258bb8",
-    "semantic_hash": "6c68579a2ba35b6e814742fc6f258bb8"
+    "mtime": 1795774737.920488,
+    "seen": 1795774742.748162,
+    "ast_hash": "df91b11c6f23a5d696c34aefef59e7af",
+    "semantic_hash": ""
   },
   "docs/ARCHITECTURE-QUESTIONS.md": {
     "mtime": 1791886735.2509573,
@@ -42,28 +42,28 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1792497092.2437265,
-    "seen": 1792497328.603765,
-    "ast_hash": "57646c1c70c7c92667696e66d8b7330d",
-    "semantic_hash": "57646c1c70c7c92667696e66d8b7330d"
+    "mtime": 1795779191.3773835,
+    "seen": 1795779214.255274,
+    "ast_hash": "ad80505d16f29c6b2a30a5a4bf7f3758",
+    "semantic_hash": ""
   },
   "docs/IMPLEMENTATION-PLAN.md": {
-    "mtime": 1792497092.2449226,
-    "seen": 1792497328.603766,
-    "ast_hash": "f742c6545648b729f7887e2c8abad1da",
-    "semantic_hash": "f742c6545648b729f7887e2c8abad1da"
+    "mtime": 1795777976.6134377,
+    "seen": 1795777995.429912,
+    "ast_hash": "c3799002cabc796c2197709f7571dde6",
+    "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792495585.1426885,
-    "seen": 1792497328.6037629,
-    "ast_hash": "ae203a80198fe25f0fcb8a3b08209c95",
-    "semantic_hash": "ae203a80198fe25f0fcb8a3b08209c95"
+    "mtime": 1795774737.920009,
+    "seen": 1795774742.748161,
+    "ast_hash": "3871d7215e17678c6aaa4e4121a04466",
+    "semantic_hash": ""
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792497092.2460845,
-    "seen": 1792497328.6037672,
-    "ast_hash": "b660b66a6a61b6e7f515bf171d76e569",
-    "semantic_hash": "b660b66a6a61b6e7f515bf171d76e569"
+    "mtime": 1795774737.921159,
+    "seen": 1795774742.7481668,
+    "ast_hash": "2c6a6f6eb475e85048dd6cab425f4589",
+    "semantic_hash": ""
   },
   "lib/leeloo_core/leeloo_core.cpp": {
     "mtime": 1792495477.458037,
@@ -78,9 +78,9 @@
     "semantic_hash": "efd73b4c27d74267666d8c41d8f37da1"
   },
   "src/main.cpp": {
-    "mtime": 1793903542.6666114,
-    "seen": 1793903671.3504279,
-    "ast_hash": "f1af2cebd8ab9e147899b2d225816872",
+    "mtime": 1795778760.2677264,
+    "seen": 1795778815.553181,
+    "ast_hash": "5c7db5e8b8adc45252da29f6511ee3b2",
     "semantic_hash": ""
   },
   "test/test_smoke/test_smoke.cpp": {
@@ -96,21 +96,21 @@
     "semantic_hash": "b7a512ffb5fd6067270ea270b51169c1"
   },
   "lib/rsvp/rsvp.cpp": {
-    "mtime": 1794856292.2921898,
-    "seen": 1795541101.521294,
-    "ast_hash": "72ffd4b9f18fd879c2c15cc6e1e5a863",
+    "mtime": 1795774525.960349,
+    "seen": 1795774742.748111,
+    "ast_hash": "2697f5b90a3a23235d991b47f6270987",
     "semantic_hash": ""
   },
   "lib/rsvp/rsvp.h": {
-    "mtime": 1793900122.8113775,
-    "seen": 1793900304.235121,
-    "ast_hash": "d84f31afd4bbdf25d92094cedc75566b",
+    "mtime": 1795774525.959887,
+    "seen": 1795774742.748112,
+    "ast_hash": "53a3ee84595e9419e4c41e44aee16fd2",
     "semantic_hash": ""
   },
   "test/test_rsvp/test_rsvp.cpp": {
-    "mtime": 1793900117.2284613,
-    "seen": 1793900304.235143,
-    "ast_hash": "282d17b4e48edc45f5f9ea9614fcf19c",
+    "mtime": 1795774628.0115004,
+    "seen": 1795774742.748139,
+    "ast_hash": "642b59eee6caada8311d92eab382d03c",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/oled-rsvp-smoke.md": {
@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "docs/hardware-checklists/buttons-input.md": {
-    "mtime": 1794590176.654018,
-    "seen": 1794590195.4697769,
-    "ast_hash": "e20347157550b4aac92c7c3eaf2fbd55",
+    "mtime": 1795774737.922152,
+    "seen": 1795774742.748169,
+    "ast_hash": "6b7d0505109decb3290d75f918f914a3",
     "semantic_hash": ""
   },
   "lib/buttons/buttons.cpp": {
@@ -132,9 +132,9 @@
     "semantic_hash": ""
   },
   "lib/buttons/buttons.h": {
-    "mtime": 1793875375.4475987,
-    "seen": 1793875401.262552,
-    "ast_hash": "2dfc0b2c9b6a0799a9bef106414db82e",
+    "mtime": 1795774525.9609802,
+    "seen": 1795774742.748103,
+    "ast_hash": "22a127bc398a83e7139beedfbbae624d",
     "semantic_hash": ""
   },
   "lib/menu/menu.cpp": {
@@ -222,51 +222,51 @@
     "semantic_hash": ""
   },
   "docs/DESIGN.md": {
-    "mtime": 1793876345.9136899,
-    "seen": 1793877132.460716,
-    "ast_hash": "bbb212eba954ad271378c3bcacd7bb16",
+    "mtime": 1795778895.5021567,
+    "seen": 1795778912.76655,
+    "ast_hash": "bcdcd32f93ad855ec7be2d253df6683e",
     "semantic_hash": ""
   },
   "docs/WEB-API.md": {
-    "mtime": 1793878937.0055199,
-    "seen": 1793879511.4157639,
-    "ast_hash": "d7c67258fd89dcd3f70236c5518768cf",
+    "mtime": 1795779045.8297942,
+    "seen": 1795779060.316579,
+    "ast_hash": "5df4918099da9ee4cd579477ba4f729b",
     "semantic_hash": ""
   },
   "lib/upload/upload.cpp": {
-    "mtime": 1793898938.619145,
-    "seen": 1793899191.8384068,
-    "ast_hash": "4288a2f62f2832fbe34ec9f68a5a6bda",
+    "mtime": 1795776187.912861,
+    "seen": 1795776549.999191,
+    "ast_hash": "692f974aa05c7b2144cca24810751773",
     "semantic_hash": ""
   },
   "lib/upload/upload.h": {
-    "mtime": 1793898937.8213992,
-    "seen": 1793899191.838408,
-    "ast_hash": "cda9a0649bf9210993f7f0a4fdbafa33",
+    "mtime": 1795776187.9124675,
+    "seen": 1795776549.999192,
+    "ast_hash": "0c139aa3aedb408b0d18492f33e12535",
     "semantic_hash": ""
   },
   "src/upload_server.cpp": {
-    "mtime": 1793903476.10562,
-    "seen": 1793903671.3504362,
-    "ast_hash": "1274b545b7b28aaffca5882c389218ad",
+    "mtime": 1795776770.0215292,
+    "seen": 1795776792.876363,
+    "ast_hash": "dc6a466063ba5474854b6d90154c2471",
     "semantic_hash": ""
   },
   "src/upload_server.h": {
-    "mtime": 1793879697.6435041,
-    "seen": 1793879934.07808,
-    "ast_hash": "ae52fe12604311f2e5fc9ab7ff7bfa6f",
+    "mtime": 1795776211.2118707,
+    "seen": 1795776549.999209,
+    "ast_hash": "eed3efca7f5c0a77b4dda8b080e060d0",
     "semantic_hash": ""
   },
   "test/test_upload/test_upload.cpp": {
-    "mtime": 1793878937.0076485,
-    "seen": 1793879511.415742,
-    "ast_hash": "b6ad0fc3e9831973ca48a3a0cec1ff7c",
+    "mtime": 1795776187.9132524,
+    "seen": 1795776549.999221,
+    "ast_hash": "c22a0b37feb915c601d1ccc95823b998",
     "semantic_hash": ""
   },
   "web/app.js": {
-    "mtime": 1793878937.0078988,
-    "seen": 1793879511.4157429,
-    "ast_hash": "5a62f2e59cdff24f9ff7957e2c75c633",
+    "mtime": 1795779168.2419333,
+    "seen": 1795779214.255254,
+    "ast_hash": "28fe7c3c47045985718176cc02293e05",
     "semantic_hash": ""
   },
   "web/build.mjs": {
@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "web/src/api.js": {
-    "mtime": 1793878937.0094657,
-    "seen": 1793879511.415745,
-    "ast_hash": "dcde03e5473967fbe3445c6a2e124e5e",
+    "mtime": 1795777831.8183806,
+    "seen": 1795777871.4904928,
+    "ast_hash": "7bd3d6de6971b7d73817214d3154d2d6",
     "semantic_hash": ""
   },
   "web/src/name.js": {
@@ -294,9 +294,9 @@
     "semantic_hash": ""
   },
   "web/test/api.test.js": {
-    "mtime": 1793878937.0107453,
-    "seen": 1793879511.415749,
-    "ast_hash": "4a3d43dc748187397d297263dd3049d5",
+    "mtime": 1795776770.0218403,
+    "seen": 1795776792.876384,
+    "ast_hash": "6c65bc43a28500c2adcca972c975ab2d",
     "semantic_hash": ""
   },
   "web/test/name.test.js": {
@@ -318,21 +318,21 @@
     "semantic_hash": ""
   },
   "web/index.html": {
-    "mtime": 1793878937.008745,
-    "seen": 1793879511.415769,
-    "ast_hash": "dc5fda32d7852d20e2fdc2c349dd3011",
+    "mtime": 1795779183.537391,
+    "seen": 1795779214.2552881,
+    "ast_hash": "052769ee141c9f0497489c27cfa73340",
     "semantic_hash": ""
   },
   "lib/settings/settings.cpp": {
-    "mtime": 1793879685.826423,
-    "seen": 1793879934.0780659,
-    "ast_hash": "4bc7d86fd178aa7a04301c98b7a9ab10",
+    "mtime": 1795777623.5869777,
+    "seen": 1795777871.49045,
+    "ast_hash": "1fffa9e219ad9e68e61951cb26304952",
     "semantic_hash": ""
   },
   "lib/settings/settings.h": {
-    "mtime": 1793900813.112394,
-    "seen": 1793900829.662355,
-    "ast_hash": "f08b6b817c0a2aff0433bdb8837a343b",
+    "mtime": 1795777976.6135318,
+    "seen": 1795777995.429853,
+    "ast_hash": "edfff6648a1441d7cc675251a79d361a",
     "semantic_hash": ""
   },
   "lib/text/text.cpp": {
@@ -348,15 +348,15 @@
     "semantic_hash": ""
   },
   "lib/ui/ui.cpp": {
-    "mtime": 1793900813.1065009,
-    "seen": 1793900829.662357,
-    "ast_hash": "a370cb9ed17ace4dafaf5510e62cd959",
+    "mtime": 1795778468.0832841,
+    "seen": 1795778524.62081,
+    "ast_hash": "a6d48b77e7453dff62b0aeaeefed30b1",
     "semantic_hash": ""
   },
   "lib/ui/ui.h": {
-    "mtime": 1793900813.101971,
-    "seen": 1793900829.662358,
-    "ast_hash": "608d4f018fa39de9faa42589ed464489",
+    "mtime": 1795778425.9477801,
+    "seen": 1795778524.620811,
+    "ast_hash": "3388cbc13dc94387c721253701488eed",
     "semantic_hash": ""
   },
   "lib/upload/inactivity.h": {
@@ -366,39 +366,39 @@
     "semantic_hash": ""
   },
   "src/display_ui.cpp": {
-    "mtime": 1794586862.0234792,
-    "seen": 1794586876.273513,
-    "ast_hash": "bfe64a086ba405dcb01b4ba32c5cf600",
+    "mtime": 1795778760.2674253,
+    "seen": 1795778815.55318,
+    "ast_hash": "281abb68c5273c2a841b9af7751e23f1",
     "semantic_hash": ""
   },
   "src/display_ui.h": {
-    "mtime": 1793903464.4027867,
-    "seen": 1793903671.350427,
-    "ast_hash": "441900ab934c2f0a4fbf0e88fc4c37e9",
+    "mtime": 1795778760.2676005,
+    "seen": 1795778815.55318,
+    "ast_hash": "2d451a7df91321e7d93af53b1afb99d3",
     "semantic_hash": ""
   },
   "src/settings_store.cpp": {
-    "mtime": 1793879261.2122276,
-    "seen": 1793879511.41573,
-    "ast_hash": "4644b93885778cf932aa55e7d6b14103",
+    "mtime": 1795777641.7590718,
+    "seen": 1795777871.4904692,
+    "ast_hash": "60cc5f5a4421028b01a59c96205496c8",
     "semantic_hash": ""
   },
   "src/settings_store.h": {
-    "mtime": 1793879258.673345,
-    "seen": 1793879511.415731,
-    "ast_hash": "aeabd23e535770b2186e144e53e7a729",
+    "mtime": 1795774585.1432185,
+    "seen": 1795774742.7481291,
+    "ast_hash": "1ccf2c470756b0c0cbb752f0d2df8569",
     "semantic_hash": ""
   },
   "src/storage_books.cpp": {
-    "mtime": 1793899321.142232,
-    "seen": 1793899346.417074,
-    "ast_hash": "10cc570f6559dabaa695e5dc55ee4b1e",
+    "mtime": 1795776168.5563095,
+    "seen": 1795776549.9992042,
+    "ast_hash": "7818e38f26fe0a0e21d47c234d8502a8",
     "semantic_hash": ""
   },
   "src/storage_books.h": {
-    "mtime": 1793899314.917312,
-    "seen": 1793899346.417074,
-    "ast_hash": "1a3d64446d3408bd6efa096be32f1f59",
+    "mtime": 1795776168.5558074,
+    "seen": 1795776549.9992042,
+    "ast_hash": "a4b85e2267e4749a73ea4238443ef2e7",
     "semantic_hash": ""
   },
   "test/test_inactivity/test_inactivity.cpp": {
@@ -408,9 +408,9 @@
     "semantic_hash": ""
   },
   "test/test_settings/test_settings.cpp": {
-    "mtime": 1793879678.4413314,
-    "seen": 1793879934.0780852,
-    "ast_hash": "26297805f4e4204a93725512fca593e2",
+    "mtime": 1795777976.6148427,
+    "seen": 1795777995.4298859,
+    "ast_hash": "5018f8177cafbde9a4f41e7ecde83c6a",
     "semantic_hash": ""
   },
   "test/test_text/test_text.cpp": {
@@ -420,45 +420,45 @@
     "semantic_hash": ""
   },
   "test/test_ui/test_ui.cpp": {
-    "mtime": 1793900814.9987469,
-    "seen": 1793900829.6623769,
-    "ast_hash": "55be3de880378f5d578857928792d62c",
+    "mtime": 1795778425.9476364,
+    "seen": 1795778524.620846,
+    "ast_hash": "1f74dae6e9ea7c1ea1399d65eac3c849",
     "semantic_hash": ""
   },
   "docs/DEVICE-MENU.md": {
-    "mtime": 1793900824.7290666,
-    "seen": 1793900829.662399,
-    "ast_hash": "6837fe55d846c9f4d2795b5f8e443a16",
+    "mtime": 1795779045.829956,
+    "seen": 1795779060.316577,
+    "ast_hash": "bbc2fc46257afcced2c0cdb4fcf5a723",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/menu.md": {
-    "mtime": 1794586864.976066,
-    "seen": 1794586876.2735622,
-    "ast_hash": "7477ae9183e43c8c75c13d030666f3c1",
+    "mtime": 1795778797.123182,
+    "seen": 1795778815.553237,
+    "ast_hash": "cf70d2dd50b2d66bee057fe0402ae221",
     "semantic_hash": ""
   },
   "lib/reader/reader.cpp": {
-    "mtime": 1793900171.3090637,
-    "seen": 1793900304.235119,
-    "ast_hash": "9c03e9e8aef403c09a4805b0f87ff458",
+    "mtime": 1795774525.9633021,
+    "seen": 1795774742.748109,
+    "ast_hash": "fa13a6759500ff3967f60c519f6925c1",
     "semantic_hash": ""
   },
   "lib/reader/reader.h": {
-    "mtime": 1793900813.1096869,
-    "seen": 1793900829.6623511,
-    "ast_hash": "8e0131415c555bea1a8d3c0bc2bb695e",
+    "mtime": 1795774525.9628935,
+    "seen": 1795774742.74811,
+    "ast_hash": "4c9d1f6f368acbb873b741f0ce672d62",
     "semantic_hash": ""
   },
   "test/test_reader/test_reader.cpp": {
-    "mtime": 1793900201.4070106,
-    "seen": 1793900304.235142,
-    "ast_hash": "b153687ce1a14190e7737438ee83a49e",
+    "mtime": 1795774628.0118656,
+    "seen": 1795774742.748139,
+    "ast_hash": "8b35c1983a1d413d14181ae9c0eef627",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/reading.md": {
-    "mtime": 1793900813.1225817,
-    "seen": 1793900829.662405,
-    "ast_hash": "2155bee0e701d065dc8c0411f6f4fbb9",
+    "mtime": 1795777850.3236518,
+    "seen": 1795777871.49052,
+    "ast_hash": "089b45665ab789e51db21f5f2677667d",
     "semantic_hash": ""
   },
   "src/rsvp_view.cpp": {
@@ -504,39 +504,39 @@
     "semantic_hash": ""
   },
   "lib/app/input_service.cpp": {
-    "mtime": 1793902947.1366034,
-    "seen": 1793903179.491677,
-    "ast_hash": "08c909b9c89118dc08b2d9a99bf66f46",
+    "mtime": 1795774541.4025452,
+    "seen": 1795774742.74809,
+    "ast_hash": "aed77b67db200e20261d0fa76944cf5a",
     "semantic_hash": ""
   },
   "lib/app/input_service.h": {
-    "mtime": 1793902942.8452666,
-    "seen": 1793903179.49168,
-    "ast_hash": "b830b8475f274e434af9d0e2ea470dbe",
+    "mtime": 1795774541.402217,
+    "seen": 1795774742.748092,
+    "ast_hash": "ff7e62caef6dd70ea56f57736a52e1e5",
     "semantic_hash": ""
   },
   "lib/app/messages.h": {
-    "mtime": 1793902930.442851,
-    "seen": 1793903179.491682,
-    "ast_hash": "2d0826040f0943309fe1aacac02f305f",
+    "mtime": 1795776118.733775,
+    "seen": 1795776549.99916,
+    "ast_hash": "027365427121b455bed4239f81f39e61",
     "semantic_hash": ""
   },
   "lib/app/net_service.cpp": {
-    "mtime": 1793903150.2707372,
-    "seen": 1793903179.491683,
-    "ast_hash": "eaca96566218783f36fa8bc3e1309a27",
+    "mtime": 1795777976.613736,
+    "seen": 1795777995.429827,
+    "ast_hash": "01e78b68e2e43d2b93212d39871eb78b",
     "semantic_hash": ""
   },
   "lib/app/net_service.h": {
-    "mtime": 1793902975.9943016,
-    "seen": 1793903179.4916842,
-    "ast_hash": "bb69d4db7da2fb2024eed032c4d7215b",
+    "mtime": 1795776133.4365458,
+    "seen": 1795776549.9991622,
+    "ast_hash": "48ddae17a0b655d951430d7069804aca",
     "semantic_hash": ""
   },
   "lib/app/ports.h": {
-    "mtime": 1793902937.9346273,
-    "seen": 1793903179.4916842,
-    "ast_hash": "c7ac720ac2552e9300ffbd715194ab24",
+    "mtime": 1795776118.7339504,
+    "seen": 1795776549.999163,
+    "ast_hash": "7f0540eb73fdce2b26663801a0d9f205",
     "semantic_hash": ""
   },
   "lib/app/reading_frame.h": {
@@ -546,69 +546,69 @@
     "semantic_hash": ""
   },
   "lib/app/rsvp_service.cpp": {
-    "mtime": 1793903150.273439,
-    "seen": 1793903179.4916859,
-    "ast_hash": "58c646b4e6995655e05ceaf0365dbe5d",
+    "mtime": 1795774807.298403,
+    "seen": 1795775046.37334,
+    "ast_hash": "e95643c043267603743ca48aed808a74",
     "semantic_hash": ""
   },
   "lib/app/rsvp_service.h": {
-    "mtime": 1793902962.9186816,
-    "seen": 1793903179.4916868,
-    "ast_hash": "78129895bae7fe15e73c132260dc4f51",
+    "mtime": 1795774807.2981148,
+    "seen": 1795775046.3733408,
+    "ast_hash": "e6d385c219db37ec94832cc321732a3c",
     "semantic_hash": ""
   },
   "lib/app/ui_service.cpp": {
-    "mtime": 1793903002.2035277,
-    "seen": 1793903179.4916868,
-    "ast_hash": "3e18814851e319a222508d1aa064cd05",
+    "mtime": 1795777635.2407067,
+    "seen": 1795777871.490434,
+    "ast_hash": "2e09d76b1b5c22e833ed7a8df9611ab1",
     "semantic_hash": ""
   },
   "lib/app/ui_service.h": {
-    "mtime": 1793903058.8385153,
-    "seen": 1793903179.491688,
-    "ast_hash": "7c1bf4f11526d811b9a12721ea6ab66b",
+    "mtime": 1795776133.4374673,
+    "seen": 1795776549.99917,
+    "ast_hash": "1cab133824f6f65ab91f0fed822050ca",
     "semantic_hash": ""
   },
   "test/test_app/test_app.cpp": {
-    "mtime": 1793903399.6450212,
-    "seen": 1793903671.3504379,
-    "ast_hash": "988d7bbe3c837256263c530060764f90",
+    "mtime": 1795777976.6146371,
+    "seen": 1795777995.429878,
+    "ast_hash": "b99a045fa0565f0893f1947b614356d2",
     "semantic_hash": ""
   },
   "lib/app/view_model.cpp": {
-    "mtime": 1793903386.2632995,
-    "seen": 1793903671.350403,
-    "ast_hash": "4fbb63803303e5d465b87933f9ee85cf",
+    "mtime": 1795776118.7347262,
+    "seen": 1795776549.999171,
+    "ast_hash": "051640ae3ba0dcb4037e768383fc70ec",
     "semantic_hash": ""
   },
   "lib/app/view_model.h": {
-    "mtime": 1793903382.5648637,
-    "seen": 1793903671.350404,
-    "ast_hash": "7a6e0d26edb2011b9197bd9ecdd9ef09",
+    "mtime": 1795776118.7344744,
+    "seen": 1795776549.999171,
+    "ast_hash": "127fad7c2f161affa6f6923493df34c5",
     "semantic_hash": ""
   },
   "src/app_adapters.cpp": {
-    "mtime": 1793903543.9758053,
-    "seen": 1793903671.350425,
-    "ast_hash": "4244c64650d383c52b9af3f8c8012224",
+    "mtime": 1795774585.1441748,
+    "seen": 1795774742.748121,
+    "ast_hash": "56a70558274c14bb6e4ba0051ae7a98c",
     "semantic_hash": ""
   },
   "src/app_adapters.h": {
-    "mtime": 1793903480.4505692,
-    "seen": 1793903671.3504262,
-    "ast_hash": "8c926c75d25d0c57b2e1f38642e146d5",
+    "mtime": 1795774585.1438804,
+    "seen": 1795774742.7481222,
+    "ast_hash": "b100f3d79cfe7f629fcee43fda4d331b",
     "semantic_hash": ""
   },
   "src/pins.h": {
-    "mtime": 1794590173.6294503,
-    "seen": 1794590195.469731,
-    "ast_hash": "6c938e83563fecebb299ebdd4a52cc79",
+    "mtime": 1795778447.969559,
+    "seen": 1795778524.620821,
+    "ast_hash": "596d9277e70eb362383379f14334f6ae",
     "semantic_hash": ""
   },
   "src/tasks.cpp": {
-    "mtime": 1793903587.1322367,
-    "seen": 1793903671.350435,
-    "ast_hash": "d2120a5ba8d486c61e889669c374f8ea",
+    "mtime": 1795778448.0119927,
+    "seen": 1795778524.620832,
+    "ast_hash": "f3902bbe3e1068a23d16203eb4f49faa",
     "semantic_hash": ""
   },
   "src/tasks.h": {
@@ -642,15 +642,153 @@
     "semantic_hash": ""
   },
   "docs/hardware-checklists/mic-inmp441.md": {
-    "mtime": 1795541100.0606756,
-    "seen": 1795541101.521358,
-    "ast_hash": "99891b6cfbbd736f575f1059f9a7d967",
+    "mtime": 1795776530.5529144,
+    "seen": 1795776549.99925,
+    "ast_hash": "7cb56cb232b9bab82e7cd71298342c6a",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/battery-tp4056.md": {
     "mtime": 1795734925.9186528,
     "seen": 1795734951.543852,
     "ast_hash": "98f1f94b476c7fbf51cf7d5191bfb792",
+    "semantic_hash": ""
+  },
+  "lib/app/recording_frame.h": {
+    "mtime": 1795776118.7341835,
+    "seen": 1795776549.9991648,
+    "ast_hash": "999bcc224468a82bfc65e2dc66b40852",
+    "semantic_hash": ""
+  },
+  "lib/app/recording_service.cpp": {
+    "mtime": 1795778148.1128862,
+    "seen": 1795778217.4361029,
+    "ast_hash": "3a1f25d7532b881b22a4c7268b11bb94",
+    "semantic_hash": ""
+  },
+  "lib/app/recording_service.h": {
+    "mtime": 1795778148.112643,
+    "seen": 1795778217.4361038,
+    "ast_hash": "ce46267a62389afe5120fb8a3a77d613",
+    "semantic_hash": ""
+  },
+  "lib/recording/recording.cpp": {
+    "mtime": 1795778089.3177395,
+    "seen": 1795778217.4361181,
+    "ast_hash": "1e2b6a17ec1f54dd79d289b1cbbdbb86",
+    "semantic_hash": ""
+  },
+  "lib/recording/recording.h": {
+    "mtime": 1795778089.3175273,
+    "seen": 1795778217.436119,
+    "ast_hash": "2649382b371e35faa2c91cc6beddddaa",
+    "semantic_hash": ""
+  },
+  "src/audio_adapters.cpp": {
+    "mtime": 1795778345.6146502,
+    "seen": 1795778363.922156,
+    "ast_hash": "fae1d6001ac54bfa987452d6661ad406",
+    "semantic_hash": ""
+  },
+  "src/audio_adapters.h": {
+    "mtime": 1795776168.5568168,
+    "seen": 1795776549.9991949,
+    "ast_hash": "4100e87f3957e305230b6d1eed5756f4",
+    "semantic_hash": ""
+  },
+  "src/storage_recording.cpp": {
+    "mtime": 1795776168.5567365,
+    "seen": 1795776549.999205,
+    "ast_hash": "0fa29274805c5498673d58085d737400",
+    "semantic_hash": ""
+  },
+  "src/storage_recording.h": {
+    "mtime": 1795776168.5566204,
+    "seen": 1795776549.9992058,
+    "ast_hash": "9445991a066b422577eb10b2284be942",
+    "semantic_hash": ""
+  },
+  "test/test_recording/test_recording.cpp": {
+    "mtime": 1795778110.1090388,
+    "seen": 1795778217.4361541,
+    "ast_hash": "7646ce564926488c0a9520422e8f19d4",
+    "semantic_hash": ""
+  },
+  "test/test_recording_service/test_recording_service.cpp": {
+    "mtime": 1795778160.6664445,
+    "seen": 1795778217.4361548,
+    "ast_hash": "f883277131af43721b53e570b3cdbd3c",
+    "semantic_hash": ""
+  },
+  "docs/hardware-checklists/audio-recording.md": {
+    "mtime": 1795779191.377703,
+    "seen": 1795779214.255278,
+    "ast_hash": "59815db095066e631bc2089aa7c7aa1d",
+    "semantic_hash": ""
+  },
+  "lib/ui/ui_text.cpp": {
+    "mtime": 1795777769.3878756,
+    "seen": 1795777871.4904552,
+    "ast_hash": "5c1be2da44d33265de218ac046d54a89",
+    "semantic_hash": ""
+  },
+  "lib/ui/ui_text.h": {
+    "mtime": 1795777769.3846288,
+    "seen": 1795777871.490456,
+    "ast_hash": "06af140d2abe87a4cc5f1468ac55e224",
+    "semantic_hash": ""
+  },
+  "test/test_ui_text/test_ui_text.cpp": {
+    "mtime": 1795777769.4262037,
+    "seen": 1795777871.490488,
+    "ast_hash": "5751f116c6d42bcc86de82c35e4ae559",
+    "semantic_hash": ""
+  },
+  "src/power.cpp": {
+    "mtime": 1795778647.0217907,
+    "seen": 1795778664.1897721,
+    "ast_hash": "7dd678ec04c72cb0385affeaf9644f0f",
+    "semantic_hash": ""
+  },
+  "src/power.h": {
+    "mtime": 1795778447.9877763,
+    "seen": 1795778524.6208231,
+    "ast_hash": "5cda68f44d0023e3389fc63e8d18b7e7",
+    "semantic_hash": ""
+  },
+  "docs/hardware-checklists/power.md": {
+    "mtime": 1795778647.0219395,
+    "seen": 1795778664.1898282,
+    "ast_hash": "ee25bb0b2e18ef4dccfe22bc352b801c",
+    "semantic_hash": ""
+  },
+  "lib/boot_anim/boot_anim.cpp": {
+    "mtime": 1795778729.8214352,
+    "seen": 1795778815.553152,
+    "ast_hash": "4cba856db14b8acfb27cc19a0c4c06fd",
+    "semantic_hash": ""
+  },
+  "lib/boot_anim/boot_anim.h": {
+    "mtime": 1795778895.5019648,
+    "seen": 1795778912.766475,
+    "ast_hash": "f8c540432b993e747651e4eaa55f5c08",
+    "semantic_hash": ""
+  },
+  "test/test_boot_anim/test_boot_anim.cpp": {
+    "mtime": 1795778895.5018017,
+    "seen": 1795778912.766518,
+    "ast_hash": "181c37314f6fd5b866994466e4ece97a",
+    "semantic_hash": ""
+  },
+  "web/src/groq.js": {
+    "mtime": 1795779168.241708,
+    "seen": 1795779214.255258,
+    "ast_hash": "838bfe3941fc07ad9ea67c8552eee26d",
+    "semantic_hash": ""
+  },
+  "web/test/groq.test.js": {
+    "mtime": 1795779183.5376031,
+    "seen": 1795779214.255264,
+    "ast_hash": "58a703ed05dc35702134742e88732493",
     "semantic_hash": ""
   }
 }
