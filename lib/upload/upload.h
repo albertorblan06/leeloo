@@ -30,6 +30,10 @@ enum class Result {
   NoSpace,
   StorageError,  // the temp-file write or the final rename failed
   Unauthorized,  // missing or unknown session cookie
+  Busy,          // another long storage operation (a capture, an upload) is running
+  NoRecording,   // GET /api/recording with no WAV pending
+  InvalidAck,    // the ack body has no usable byte count
+  SizeMismatch,  // the phone reports another size than the stored WAV: keep the file
 };
 
 // Error code string and HTTP status from docs/WEB-API.md §3.2. Ok maps to
@@ -99,6 +103,11 @@ void format_pin(std::uint32_t random, char* out);
 // `out` (kPinDigits + 1 bytes). Not a general JSON parser: it accepts only a
 // "pin" key with a string of exactly kPinDigits digits. False otherwise.
 bool extract_pin(const char* body, std::size_t len, char* out);
+
+// Reads the received byte count from the POST /api/recording/ack JSON body, e.g.
+// {"bytes":123456}. Not a general JSON parser: it accepts only a "bytes" key with a
+// non-negative integer of at most 9 digits. False otherwise.
+bool extract_ack_bytes(const char* body, std::size_t len, std::uint32_t* out);
 
 // Constant-time comparison; false on any length mismatch.
 bool pin_matches(const char* expected, const char* given, std::size_t given_len);

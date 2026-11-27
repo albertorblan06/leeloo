@@ -324,6 +324,54 @@ void test_error_codes_and_statuses_match_contract() {
   TEST_ASSERT_EQUAL_INT(201, http_status(Result::Ok));
 }
 
+void test_recording_error_codes_and_statuses_match_contract() {
+  TEST_ASSERT_EQUAL_STRING("busy", error_code(Result::Busy));
+  TEST_ASSERT_EQUAL_INT(409, http_status(Result::Busy));
+  TEST_ASSERT_EQUAL_STRING("no_recording", error_code(Result::NoRecording));
+  TEST_ASSERT_EQUAL_INT(404, http_status(Result::NoRecording));
+  TEST_ASSERT_EQUAL_STRING("invalid_ack", error_code(Result::InvalidAck));
+  TEST_ASSERT_EQUAL_INT(400, http_status(Result::InvalidAck));
+  TEST_ASSERT_EQUAL_STRING("size_mismatch", error_code(Result::SizeMismatch));
+  TEST_ASSERT_EQUAL_INT(409, http_status(Result::SizeMismatch));
+}
+
+// --- extract_ack_bytes ---
+
+namespace {
+bool ack(const char* body, std::uint32_t* out) { return extract_ack_bytes(body, std::strlen(body), out); }
+}  // namespace
+
+void test_ack_bytes_reads_the_count() {
+  std::uint32_t n = 0;
+  TEST_ASSERT_TRUE(ack("{\"bytes\":1920044}", &n));
+  TEST_ASSERT_EQUAL_UINT32(1920044, n);
+  TEST_ASSERT_TRUE(ack("{ \"bytes\" : 44 }", &n));
+  TEST_ASSERT_EQUAL_UINT32(44, n);
+  TEST_ASSERT_TRUE(ack("{\"bytes\":0}", &n));
+  TEST_ASSERT_EQUAL_UINT32(0, n);
+}
+
+void test_ack_bytes_rejects_anything_else() {
+  std::uint32_t n = 99;
+  TEST_ASSERT_FALSE(ack("", &n));
+  TEST_ASSERT_FALSE(ack("{}", &n));
+  TEST_ASSERT_FALSE(ack("{\"size\":10}", &n));
+  TEST_ASSERT_FALSE(ack("{\"bytes\":}", &n));
+  TEST_ASSERT_FALSE(ack("{\"bytes\":\"10\"}", &n));
+  TEST_ASSERT_FALSE(ack("{\"bytes\":-1}", &n));
+  TEST_ASSERT_FALSE(ack("{\"bytes\":12.5}", &n));
+  TEST_ASSERT_FALSE(ack("{\"bytes\":12abc}", &n));
+  TEST_ASSERT_FALSE(ack("{\"bytes\":1234567890}", &n));  // ten digits
+  TEST_ASSERT_FALSE(ack("{\"bytes\"", &n));
+  TEST_ASSERT_EQUAL_UINT32(99, n);  // untouched on failure
+}
+
+void test_ack_bytes_accepts_nine_digits() {
+  std::uint32_t n = 0;
+  TEST_ASSERT_TRUE(ack("{\"bytes\":999999999}", &n));
+  TEST_ASSERT_EQUAL_UINT32(999999999, n);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_accepts_minimal_valid_book);
@@ -376,5 +424,9 @@ int main() {
   RUN_TEST(test_extract_pin_tolerates_whitespace);
   RUN_TEST(test_extract_pin_rejects_malformed_bodies);
   RUN_TEST(test_error_codes_and_statuses_match_contract);
+  RUN_TEST(test_recording_error_codes_and_statuses_match_contract);
+  RUN_TEST(test_ack_bytes_reads_the_count);
+  RUN_TEST(test_ack_bytes_rejects_anything_else);
+  RUN_TEST(test_ack_bytes_accepts_nine_digits);
   return UNITY_END();
 }

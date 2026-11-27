@@ -53,6 +53,10 @@ const char* error_code(Result r) {
     case Result::NoSpace: return "no_space";
     case Result::StorageError: return "storage_error";
     case Result::Unauthorized: return "unauthorized";
+    case Result::Busy: return "busy";
+    case Result::NoRecording: return "no_recording";
+    case Result::InvalidAck: return "invalid_ack";
+    case Result::SizeMismatch: return "size_mismatch";
   }
   return "";
 }
@@ -68,6 +72,10 @@ int http_status(Result r) {
     case Result::NoSpace: return 507;
     case Result::StorageError: return 500;
     case Result::Unauthorized: return 401;
+    case Result::Busy:
+    case Result::SizeMismatch: return 409;
+    case Result::NoRecording: return 404;
+    case Result::InvalidAck: return 400;
   }
   return 500;
 }
@@ -234,6 +242,31 @@ bool extract_pin(const char* body, std::size_t len, char* out) {
   }
   if (s[i + kPinDigits] != '"') return false;
   out[kPinDigits] = '\0';
+  return true;
+}
+
+bool extract_ack_bytes(const char* body, std::size_t len, std::uint32_t* out) {
+  const std::string_view s(body, len);
+  const std::size_t key = s.find("\"bytes\"");
+  if (key == std::string_view::npos) return false;
+  std::size_t i = key + 7;  // past the closing quote of "bytes"
+  const auto skip_spaces = [&] {
+    while (i < s.size() && (s[i] == ' ' || s[i] == '\t' || s[i] == '\n' || s[i] == '\r')) ++i;
+  };
+  skip_spaces();
+  if (i >= s.size() || s[i] != ':') return false;
+  ++i;
+  skip_spaces();
+  std::uint32_t value = 0;
+  std::size_t digits = 0;
+  for (; i < s.size() && s[i] >= '0' && s[i] <= '9'; ++i, ++digits) {
+    if (digits == 9) return false;  // more than any WAV this device writes, and no overflow
+    value = value * 10 + static_cast<std::uint32_t>(s[i] - '0');
+  }
+  if (digits == 0) return false;
+  skip_spaces();
+  if (i < s.size() && s[i] != '}' && s[i] != ',') return false;  // "12.5", "1e3", "-1", "12abc"
+  *out = value;
   return true;
 }
 
