@@ -46,10 +46,11 @@ Needs a Groq key (console.groq.com) and mobile data on the phone.
 - [ ] **With mobile data on and the phone joined to `Leeloo`** (the critical test): it transcribes and summarizes. Record the phone, OS and result: ______. If the request fails with `No hay internet`, note whether turning Wi-Fi's "switch to mobile data" / "keep connection" option on or off changes it: ______.
 - [ ] With mobile data off it says `No hay internet. Activa los datos móviles…`, the recording is still playable and downloadable, and the device copy was already handled as before.
 - [ ] The transcript is in correct Spanish for a clear 20 s sample, and the summary is a few bullets in Spanish. Quality of the 16 kHz recording for speech: ______.
-- [ ] Reload the page and receive another recording: the key is still there (`Olvidar la clave` clears it); the old transcript is gone.
+- [ ] Reload the page: the key is still there (`Olvidar la clave` clears it); the received recording and its transcript are gone, as the page warns (download first). Receive another recording: the previous notes do not appear.
 - [ ] `Copiar` puts both texts on the clipboard (the page is plain http, so this uses the fallback); `Descargar .txt` saves `grabacion.txt` with the summary first.
 - [ ] A recording near the limit (~10 min, 19 MB) is accepted by Groq, or the page says it is too large.
 - [ ] The key does not appear in the address, in the page source or in the device's serial log.
+- [ ] With site data or cookies blocked in the phone browser, the page still loads and transcribes (the key is just not remembered).
 
 ## Power
 - [ ] Repeat the battery brownout test of `battery-tp4056.md` with the AP up **and** a recording running (the worst case). Record the lowest voltage seen and whether the board resets: ______.

@@ -58,5 +58,14 @@ input:focus-visible, button:focus-visible, .button:focus-within, label.button:ha
   outline: 2px solid var(--focus); outline-offset: 2px;
 }
 progress { width: 100%; height: 4px; accent-color: var(--text); }
+h2 { font: 400 20px/28px Georgia, "Times New Roman", serif; margin: 32px 0 4px; }
+textarea {
+  width: 100%; margin-top: 6px; padding: 12px;
+  font: inherit; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 0; resize: vertical;
+}
+textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+audio { display: block; width: 100%; margin-top: 24px; }
+a.button { box-sizing: border-box; text-decoration: none; }
 #error { padding: 12px; border: 1px solid var(--focus); color: var(--text); }
 @media (prefers-reduced-motion: reduce) { button, .button { transition: none; } }

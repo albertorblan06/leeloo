@@ -1,15 +1,23 @@
 // Browser glue only: DOM wiring around the tested modules in src/. Excluded from coverage.
-import { authenticate, uploadBook, errorMessage } from './src/api.js';
+import {
+  acknowledgeRecording, authenticate, errorMessage, fetchRecording, uploadBook,
+} from './src/api.js';
+import {
+  browserStorage, buildNotesText, forgetKey, groqErrorMessage, loadKey, saveKey, summarize, transcribe,
+} from './src/groq.js';
 import { extractPdf, extractErrorMessage } from './src/pdf.js';
 import { buildBookFile } from './src/format.js';
 import { bookNameFrom } from './src/name.js';
 
 const $ = (id) => document.getElementById(id);
-const steps = ['pin', 'file', 'busy', 'review', 'done'];
+const steps = ['pin', 'choose', 'file', 'busy', 'review', 'done', 'audio-done'];
 const kUnknownAuthor = 'Desconocido';
 
 let book = null; // { title, author, pages, text } from the last conversion
 let controller = null;
+let audioUrl = null;
+let audioBlob = null; // the last received recording, kept for transcription
+let notesUrl = null;
 
 function show(step) {
   for (const s of steps) $(s).hidden = s !== step;
@@ -24,9 +32,14 @@ function clearError() {
   $('error').hidden = true;
 }
 
+// A download has no progress events here, so the bar shows an unknown wait.
+function progressUnknown() {
+  $('progress').removeAttribute('value');
+}
+
 function busy(label) {
   $('busy-label').textContent = label;
-  $('progress').value = 0;
+  $('progress').value = 0; // also restores a determinate bar after progressUnknown()
   controller = new AbortController();
   show('busy');
 }
@@ -50,11 +63,47 @@ $('pin').addEventListener('submit', async (e) => {
   clearError();
   try {
     await authenticate($('pin-input').value.trim());
-    show('file');
+    show('choose');
   } catch (err) {
     showError(errorMessage(err.code));
   }
 });
+
+$('choose-book').addEventListener('click', () => {
+  clearError();
+  show('file');
+});
+
+// The device deletes its copy only when told how many bytes arrived and the count matches,
+// so a refused or failed confirmation just leaves the audio there for another try.
+$('choose-audio').addEventListener('click', async () => {
+  clearError();
+  busy('Recibiendo la grabación…');
+  progressUnknown();
+  try {
+    const blob = await fetchRecording({ signal: controller.signal });
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    audioUrl = URL.createObjectURL(blob);
+    audioBlob = blob;
+    clearNotes(); // notes of an earlier recording do not belong to this one
+    $('audio-player').src = audioUrl;
+    $('audio-download').href = audioUrl;
+    let status = 'Grabación recibida. Puedes reproducirla o descargarla.';
+    try {
+      await acknowledgeRecording(blob.size, { signal: controller.signal });
+      status += ' Se ha borrado del dispositivo.';
+    } catch (err) {
+      status += ` Sigue en el dispositivo: ${errorMessage(err.code)}`;
+    }
+    $('audio-status').textContent = status;
+    show('audio-done');
+  } catch (err) {
+    showError(errorMessage(err.code));
+    show(err.code === 'unauthorized' || err.code === 'session_closed' ? 'pin' : 'choose');
+  }
+});
+
+$('audio-again').addEventListener('click', () => show('choose'));
 
 $('file-input').addEventListener('change', async (e) => {
   const file = e.target.files[0];
@@ -112,3 +161,83 @@ $('review').addEventListener('submit', async (e) => {
 
 $('cancel').addEventListener('click', () => controller?.abort());
 $('again').addEventListener('click', () => show('file'));
+
+// --- Transcription and summary (Groq, from the phone) ---
+
+// The storage is asked for once and may be absent: a blocked localStorage must not break the page.
+const storage = browserStorage();
+$('groq-key').value = loadKey(storage);
+
+$('forget-key').addEventListener('click', () => {
+  forgetKey(storage);
+  $('groq-key').value = '';
+  clearError();
+});
+
+function clearNotes() {
+  $('notes').hidden = true;
+  $('summary').value = '';
+  $('transcript').value = '';
+  if (notesUrl) URL.revokeObjectURL(notesUrl);
+  notesUrl = null;
+}
+
+function showNotes(summary, transcript) {
+  $('summary').value = summary;
+  $('transcript').value = transcript;
+  if (notesUrl) URL.revokeObjectURL(notesUrl);
+  notesUrl = URL.createObjectURL(new Blob([buildNotesText({ summary, transcript })], { type: 'text/plain;charset=utf-8' }));
+  $('notes-download').href = notesUrl;
+  $('summary-block').hidden = !summary; // a failed summary leaves just the transcript
+  $('notes').hidden = false;
+}
+
+// The text transcription survives a failed summary: it is shown with the reason.
+$('transcribe').addEventListener('click', async () => {
+  clearError();
+  const key = $('groq-key').value.trim();
+  busy('Transcribiendo…');
+  progressUnknown();
+  let transcript;
+  try {
+    transcript = await transcribe(audioBlob, key, { signal: controller.signal });
+  } catch (err) {
+    showError(groqErrorMessage(err.code));
+    show('audio-done');
+    return;
+  }
+  saveKey(storage, key); // Groq accepted it; remembering it must never cost the transcript
+  $('busy-label').textContent = 'Resumiendo…';
+  let summary = '';
+  try {
+    summary = await summarize(transcript, key, { signal: controller.signal });
+  } catch (err) {
+    showError(groqErrorMessage(err.code));
+  }
+  showNotes(summary, transcript);
+  show('audio-done');
+});
+
+// The page is plain http (the device's own network), where navigator.clipboard is not offered,
+// so the text is selected and copied the old way.
+$('copy-notes').addEventListener('click', async () => {
+  const text = buildNotesText({ summary: $('summary').value, transcript: $('transcript').value });
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    copied = true;
+  } catch {
+    const field = document.createElement('textarea');
+    field.value = text;
+    document.body.append(field);
+    field.focus();
+    field.select();
+    field.setSelectionRange(0, text.length); // iOS ignores select() alone
+    copied = document.execCommand('copy');
+    field.remove();
+  }
+  // Say what happened: on a phone the copy is otherwise invisible.
+  const button = $('copy-notes');
+  button.textContent = copied ? 'Copiado' : 'No se pudo copiar: selecciona el texto';
+  setTimeout(() => { button.textContent = 'Copiar'; }, 2000);
+});

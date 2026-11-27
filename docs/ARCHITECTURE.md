@@ -160,6 +160,8 @@ The recording received by the phone page can be transcribed and summarized there
 - Groq needs internet, and the phone is joined to the device's Wi-Fi, which has none. The page relies on the phone sending these requests over mobile data while joined to the access point. Android and iOS differ in whether they do; when it fails the page says so (`No hay internet. Activa los datos móviles…`) and the recording can still be played and downloaded.
 - Groq answers browser requests (a preflight from `http://192.168.4.1` returns `access-control-allow-origin: *` for both endpoints, checked on 2026-11-27).
 - The Groq key is pasted by the user and kept only in the phone's `localStorage` for the device's own origin; it is sent only in the `Authorization` header, never in a URL or the device. The page warns that the audio goes to an external service.
+- The page is plain `http://192.168.4.1`, an origin without isolation: anyone who serves that address on another network, or sits in the middle of the access point, could read the key from `localStorage`. Use a Groq key made for Leeloo, so it can be revoked on its own, and use `Olvidar la clave` on a phone that is not yours.
+- The device deletes its copy once the phone has the whole file, and the page keeps the recording only in memory: reloading or closing the page loses it unless it was downloaded first. The page says so.
 - Limits: 25 MB per file on the free tier (a 10-minute 16 kHz recording is 19.2 MB, so it fits). If the summary fails, the transcript is still shown.
 
 ## 6. Storage and persistence

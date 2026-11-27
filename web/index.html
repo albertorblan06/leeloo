@@ -9,7 +9,7 @@
 <body>
   <main>
     <p class="mark">LEELOO</p>
-    <h1>Subir libro</h1>
+    <h1>Libros y grabaciones</h1>
     <p id="error" role="alert" hidden></p>
 
     <form id="pin" novalidate>
@@ -18,6 +18,12 @@
       <p class="help">Es el número de cuatro cifras que se muestra en la pantalla.</p>
       <button type="submit">Seguir</button>
     </form>
+
+    <section id="choose" hidden>
+      <button id="choose-book" type="button">Añadir un libro</button>
+      <button id="choose-audio" type="button">Recibir la grabación</button>
+      <p class="help">La grabación solo está disponible si has elegido «Enviar al móvil» en el dispositivo.</p>
+    </section>
 
     <section id="file" hidden>
       <label class="button" for="file-input">Elegir PDF</label>
@@ -42,7 +48,34 @@
 
     <section id="done" hidden>
       <p>Libro enviado.</p>
-      <button id="again" type="button">Subir otro</button>
+      <button id="again" type="button">Añadir otro</button>
+    </section>
+
+    <section id="audio-done" hidden>
+      <p id="audio-status"></p>
+      <audio id="audio-player" controls></audio>
+      <a id="audio-download" class="button" href="#" download="grabacion.wav">Descargar</a>
+
+      <h2>Transcribir y resumir</h2>
+      <p class="help">La grabación se envía a Groq, un servicio externo, y hace falta internet: activa los datos móviles. La red Leeloo no tiene salida a internet.</p>
+      <p class="help">Descarga la grabación antes de recargar o cerrar esta página: si el dispositivo ya ha borrado su copia, no se podrá recuperar.</p>
+      <label for="groq-key">Clave de Groq</label>
+      <input id="groq-key" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="gsk_…">
+      <p class="help">Se guarda solo en este navegador. Créala en console.groq.com.</p>
+      <button id="transcribe" type="button">Transcribir y resumir</button>
+      <button id="forget-key" type="button">Olvidar la clave</button>
+      <div id="notes" hidden>
+        <div id="summary-block">
+          <label for="summary">Resumen</label>
+          <textarea id="summary" readonly rows="6"></textarea>
+        </div>
+        <label for="transcript">Transcripción</label>
+        <textarea id="transcript" readonly rows="10"></textarea>
+        <button id="copy-notes" type="button">Copiar</button>
+        <a id="notes-download" class="button" href="#" download="grabacion.txt">Descargar .txt</a>
+      </div>
+
+      <button id="audio-again" type="button">Volver</button>
     </section>
   </main>
   <script type="module" src="/app.js"></script>
