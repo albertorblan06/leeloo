@@ -3,7 +3,8 @@ import {
   acknowledgeRecording, authenticate, errorMessage, fetchRecording, uploadBook,
 } from './src/api.js';
 import {
-  browserStorage, buildNotesText, forgetKey, groqErrorMessage, loadKey, saveKey, summarize, transcribe,
+  browserStorage, buildNotesText, forgetKey, groqErrorMessage, isPlausibleKey, loadKey, saveKey, summarize,
+  transcribe,
 } from './src/groq.js';
 import { extractPdf, extractErrorMessage } from './src/pdf.js';
 import { buildBookFile } from './src/format.js';
@@ -86,6 +87,7 @@ $('choose-audio').addEventListener('click', async () => {
     audioUrl = URL.createObjectURL(blob);
     audioBlob = blob;
     clearNotes(); // notes of an earlier recording do not belong to this one
+    aiStatus('');
     $('audio-player').src = audioUrl;
     $('audio-download').href = audioUrl;
     let status = 'Grabación recibida. Puedes reproducirla o descargarla.';
@@ -172,7 +174,18 @@ $('forget-key').addEventListener('click', () => {
   forgetKey(storage);
   $('groq-key').value = '';
   clearError();
+  aiStatus('');
 });
+
+// The result of Transcribir y resumir is told right under its button, and scrolled into view: the
+// page's own error box is at the top, out of sight when the button is far down on a phone.
+function aiStatus(text, isError = false) {
+  const status = $('ai-status');
+  status.textContent = text;
+  status.hidden = !text;
+  status.classList.toggle('error', isError);
+  if (text) status.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
 
 function clearNotes() {
   $('notes').hidden = true;
@@ -195,27 +208,39 @@ function showNotes(summary, transcript) {
 // The text transcription survives a failed summary: it is shown with the reason.
 $('transcribe').addEventListener('click', async () => {
   clearError();
+  aiStatus('');
   const key = $('groq-key').value.trim();
+  if (!audioBlob) {
+    aiStatus('Primero recibe la grabación.', true);
+    return;
+  }
+  if (!isPlausibleKey(key)) {
+    aiStatus(groqErrorMessage('no_key'), true); // nothing to wait for: say it here, at once
+    return;
+  }
   busy('Transcribiendo…');
   progressUnknown();
   let transcript;
   try {
     transcript = await transcribe(audioBlob, key, { signal: controller.signal });
   } catch (err) {
-    showError(groqErrorMessage(err.code));
     show('audio-done');
+    aiStatus(groqErrorMessage(err.code), true);
     return;
   }
   saveKey(storage, key); // Groq accepted it; remembering it must never cost the transcript
   $('busy-label').textContent = 'Resumiendo…';
   let summary = '';
+  let summaryError = '';
   try {
     summary = await summarize(transcript, key, { signal: controller.signal });
   } catch (err) {
-    showError(groqErrorMessage(err.code));
+    summaryError = groqErrorMessage(err.code);
   }
   showNotes(summary, transcript);
   show('audio-done');
+  aiStatus(summaryError, true); // empty when the summary worked: the status then hides
+  if (!summaryError) $('notes').scrollIntoView({ block: 'start', behavior: 'smooth' });
 });
 
 // The page is plain http (the device's own network), where navigator.clipboard is not offered,

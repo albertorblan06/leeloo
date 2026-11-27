@@ -67,5 +67,7 @@ textarea {
 textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 audio { display: block; width: 100%; margin-top: 24px; }
 a.button { box-sizing: border-box; text-decoration: none; }
+#ai-status { margin-top: 16px; padding: 12px; border: 1px solid var(--line); }
+#ai-status.error { border-color: var(--focus); }
 #error { padding: 12px; border: 1px solid var(--focus); color: var(--text); }
 @media (prefers-reduced-motion: reduce) { button, .button { transition: none; } }
