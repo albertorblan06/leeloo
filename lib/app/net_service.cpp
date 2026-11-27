@@ -19,16 +19,20 @@ NetService::NetService(INet* net, rtos::Queue<ui::Event>* ui_out, ILog* log)
 // Stops the AP unless the On setting keeps it up while the device is awake.
 void NetService::end_upload_session() {
   auto_session_ = false;
+  recording_session_ = false;
   timer_.stop();
   stop_at_ms_ = 0;
   if (applied_wifi_ != settings::WifiMode::On) net_->stop();
 }
 
-void NetService::start_upload(std::uint32_t now_ms) {
+void NetService::start_upload(std::uint32_t now_ms, bool recording) {
   stop_at_ms_ = 0;  // a deferred stop from an earlier save must not end this session
+  recording_session_ = recording;
   if (!net_->running() && !net_->start()) {
     if (log_ != nullptr) log_->log("Wi-Fi: no se pudo iniciar");
-    post(ui_out_, ui::Event::UploadStartFailed, log_, "Cola de UI llena: se pierde UploadStartFailed");
+    post(ui_out_, recording ? ui::Event::AudioUploadStartFailed : ui::Event::UploadStartFailed, log_,
+         "Cola de UI llena: se pierde el aviso de fallo de Wi-Fi");
+    recording_session_ = false;
     return;
   }
   auto_session_ = applied_wifi_ == settings::WifiMode::Auto;
@@ -48,13 +52,17 @@ void NetService::handle(const NetMsg& msg, std::uint32_t now_ms) {
       }
       return;
     case NetCmd::StartUpload:
-      start_upload(now_ms);
+      start_upload(now_ms, false);
+      return;
+    case NetCmd::StartRecordingUpload:
+      start_upload(now_ms, true);
       return;
     case NetCmd::StopUpload:
+    case NetCmd::StopRecordingUpload:
       end_upload_session();
       return;
     case NetCmd::ApplyWifi:
-      // Wi-Fi changes apply immediately; Automático waits for Biblioteca > Subir. Leaving On
+      // Wi-Fi changes apply immediately; Automático waits for Biblioteca > Añadir libro. Leaving On
       // stops an AP that no session owns, unless the upload screen is open on it.
       if (msg.wifi == settings::WifiMode::On && !net_->running()) net_->start();
       if (msg.wifi != settings::WifiMode::On && net_->running() && !msg.upload_screen_open) {
@@ -64,6 +72,10 @@ void NetService::handle(const NetMsg& msg, std::uint32_t now_ms) {
       return;
     case NetCmd::SavedOnUploadScreen:
       // Only a save made from the upload screen schedules the stop; otherwise the session is already over.
+      if (applied_wifi_ != settings::WifiMode::On) stop_at_ms_ = now_ms + kStopAfterSaveMs;
+      return;
+    case NetCmd::RecordingTransferred:
+      // Same grace as a saved book: the phone still has its answer to receive.
       if (applied_wifi_ != settings::WifiMode::On) stop_at_ms_ = now_ms + kStopAfterSaveMs;
       return;
   }
@@ -79,8 +91,10 @@ void NetService::on_timeout(std::uint32_t now_ms) {
   timer_.touch(net_->last_activity_ms());
   if (timer_.expired(now_ms)) {
     if (log_ != nullptr) log_->log("Wi-Fi: sesión cerrada por inactividad");
+    const ui::Event timed_out =
+        recording_session_ ? ui::Event::AudioUploadTimedOut : ui::Event::UploadTimedOut;
     end_upload_session();
-    post(ui_out_, ui::Event::UploadTimedOut, log_, "Cola de UI llena: se pierde UploadTimedOut");
+    post(ui_out_, timed_out, log_, "Cola de UI llena: se pierde el aviso de inactividad");
   }
 }
 

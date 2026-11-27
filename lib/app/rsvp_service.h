@@ -21,8 +21,9 @@ class RsvpService {
   // How long the WPM label stays on screen after a speed change.
   static constexpr std::uint32_t kWpmLabelMs = 2000;
 
+  // `speed` may be null: the speed then stays at the default and is not saved.
   RsvpService(ILibrary* library, rtos::Queue<ui::Event>* ui_out, reader::PieceCounter pieces,
-              ILog* log = nullptr);
+              ISpeedStore* speed = nullptr, ILog* log = nullptr);
 
   // Both return true when the frame changed and the display needs a new one.
   bool handle(const RsvpMsg& msg, std::uint32_t now_ms);
@@ -35,7 +36,9 @@ class RsvpService {
   ReadingFrame frame() const;
 
  private:
-  bool open_book(std::size_t index, std::uint32_t now_ms);
+  bool open_book(std::size_t index, std::uint32_t now_ms, std::uint32_t wpm_step);
+  void change_speed(bool faster, std::uint32_t now_ms);
+  void save_speed();
   void close_book();
   void save_progress();
   void finish_book();
@@ -43,7 +46,10 @@ class RsvpService {
   ILibrary* library_;
   rtos::Queue<ui::Event>* ui_out_;
   reader::PieceCounter pieces_;
+  ISpeedStore* speed_;
   ILog* log_;
+  bool speed_dirty_ = false;  // the user changed the speed since this book opened
+  std::uint32_t last_wpm_;  // the speed on disk: global across books, saved on exit or finish
   std::optional<reader::Reader> reader_;
   // Title, not index: the library index can shift while the book is open (an upload may add a book).
   char title_[64] = "";

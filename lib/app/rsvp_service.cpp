@@ -17,8 +17,13 @@ std::uint32_t until(std::uint32_t at, std::uint32_t now) {
 }  // namespace
 
 RsvpService::RsvpService(ILibrary* library, rtos::Queue<ui::Event>* ui_out,
-                         reader::PieceCounter pieces, ILog* log)
-    : library_(library), ui_out_(ui_out), pieces_(pieces), log_(log) {}
+                         reader::PieceCounter pieces, ISpeedStore* speed, ILog* log)
+    : library_(library),
+      ui_out_(ui_out),
+      pieces_(pieces),
+      speed_(speed),
+      log_(log),
+      last_wpm_(speed != nullptr ? speed->load() : rsvp::kDefaultWpm) {}
 
 void RsvpService::close_book() {
   reader_.reset();
@@ -35,16 +40,32 @@ void RsvpService::save_progress() {
   }
 }
 
+// Saves the reader's speed when it differs from the stored one. Not called on pause:
+// the speed is a per-exit preference, not per-pause, and NVS writes are limited.
+void RsvpService::save_speed() {
+  // Only a user change is saved: opening re-aligns the speed to the step, which must not overwrite the stored value.
+  if (!reader_ || speed_ == nullptr || !speed_dirty_ || reader_->wpm() == last_wpm_) return;
+  const auto wpm = static_cast<std::uint16_t>(reader_->wpm());
+  if (speed_->save(wpm)) {
+    last_wpm_ = wpm;
+    speed_dirty_ = false;
+  } else if (log_ != nullptr) {
+    log_->log("Lectura: no se pudo guardar la velocidad");
+  }
+}
+
 // The last word has been held: the position resets to 0, then the book closes.
 void RsvpService::finish_book() {
   save_progress();
+  save_speed();
   close_book();
   post(ui_out_, ui::Event::ReaderFinished, log_, "Cola de UI llena: se pierde ReaderFinished");
 }
 
 // Loads book `index` at its saved word. False when the text cannot be used.
-bool RsvpService::open_book(std::size_t index, std::uint32_t now_ms) {
+bool RsvpService::open_book(std::size_t index, std::uint32_t now_ms, std::uint32_t wpm_step) {
   close_book();
+  speed_dirty_ = false;
   BookBuffer buffer;
   if (!library_->open(index, title_, sizeof title_, &buffer)) return false;
   const auto body = reader::body_offset(buffer.data, buffer.size);
@@ -54,14 +75,15 @@ bool RsvpService::open_book(std::size_t index, std::uint32_t now_ms) {
   }
   std::size_t saved = 0;
   if (!library_->load_position(title_, &saved)) saved = 0;
-  reader_.emplace(buffer.data + *body, buffer.size - *body, saved, now_ms, pieces_);
+  reader_.emplace(buffer.data + *body, buffer.size - *body, saved, now_ms, pieces_, last_wpm_,
+                  wpm_step);
   return true;
 }
 
 bool RsvpService::handle(const RsvpMsg& msg, std::uint32_t now_ms) {
   switch (msg.cmd) {
     case RsvpCmd::Open:
-      if (!open_book(msg.index, now_ms)) {
+      if (!open_book(msg.index, now_ms, msg.wpm_step)) {
         post(ui_out_, ui::Event::BookOpenFailed, log_, "Cola de UI llena: se pierde BookOpenFailed");
         return true;
       }
@@ -70,6 +92,7 @@ bool RsvpService::handle(const RsvpMsg& msg, std::uint32_t now_ms) {
       return true;
     case RsvpCmd::Close:
       save_progress();
+      save_speed();
       close_book();
       return true;
     case RsvpCmd::Select:
@@ -88,18 +111,28 @@ bool RsvpService::handle(const RsvpMsg& msg, std::uint32_t now_ms) {
       if (reader_->state() == reader::State::Paused) {
         reader_->step_sentence(up ? -1 : +1);
         save_progress();  // a seek is kept even if power is lost while paused
-      } else {
-        if (up) {
-          reader_->faster();
-        } else {
-          reader_->slower();
-        }
-        label_until_ms_ = now_ms + kWpmLabelMs;
+        return true;
       }
+      change_speed(up, now_ms);
       return true;
     }
+    case RsvpCmd::UpRepeat:
+    case RsvpCmd::DownRepeat:
+      if (!reader_ || reader_->state() != reader::State::Reading) return false;
+      change_speed(msg.cmd == RsvpCmd::UpRepeat, now_ms);
+      return true;
   }
   return false;
+}
+
+void RsvpService::change_speed(bool faster, std::uint32_t now_ms) {
+  if (faster) {
+    reader_->faster();
+  } else {
+    reader_->slower();
+  }
+  speed_dirty_ = true;
+  label_until_ms_ = now_ms + kWpmLabelMs;
 }
 
 bool RsvpService::on_timeout(std::uint32_t now_ms) {

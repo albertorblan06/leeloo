@@ -27,6 +27,8 @@ void tearDown() {}
 static_assert(std::is_trivially_copyable<RawEdge>::value, "queued as bytes");
 static_assert(std::is_trivially_copyable<RsvpMsg>::value, "queued as bytes");
 static_assert(std::is_trivially_copyable<NetMsg>::value, "queued as bytes");
+static_assert(std::is_trivially_copyable<RecordingMsg>::value, "queued as bytes");
+static_assert(std::is_trivially_copyable<RecordingFrame>::value, "published as bytes");
 static_assert(std::is_trivially_copyable<ReadingFrame>::value, "published as bytes");
 
 namespace {
@@ -104,6 +106,20 @@ struct SettingsStore : ISettingsStore {
   }
 };
 
+struct SpeedStore : ISpeedStore {
+  std::uint16_t stored;
+  bool ok = true;
+  std::vector<std::uint16_t> saves;
+  explicit SpeedStore(std::uint16_t initial = 300) : stored(initial) {}
+  std::uint16_t load() override { return stored; }
+  bool save(std::uint16_t wpm) override {
+    if (!ok) return false;
+    stored = wpm;
+    saves.push_back(wpm);
+    return true;
+  }
+};
+
 struct DisplayControl : IDisplayControl {
   int calls = 0;
   std::uint8_t last = 0;
@@ -167,13 +183,13 @@ void test_up_press_posts_up_once_the_level_is_stable() {
   InputFixture fx;
   fx.pins.level[kUp] = false;
   fx.svc.on_edge({kUp, false, 0});
-  TEST_ASSERT_EQUAL_UINT32(kDebounce, fx.svc.wait_ms());
+  TEST_ASSERT_EQUAL_UINT32(kDebounce, fx.svc.wait_ms(0));
   Event e;
   TEST_ASSERT_FALSE(fx.ui.take(&e));  // not yet: the bounce window is open
   fx.svc.on_timeout(kDebounce);
   TEST_ASSERT_TRUE(fx.ui.take(&e));
   TEST_ASSERT_EQUAL((int)Event::Up, (int)e);
-  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms());
+  TEST_ASSERT_EQUAL_UINT32(leeloo::buttons::kRepeatDelayMs, fx.svc.wait_ms(kDebounce));  // the repeat timer
 }
 
 void test_select_released_before_long_press_posts_select() {
@@ -209,13 +225,13 @@ void test_bounce_that_returns_to_idle_posts_nothing() {
   fx.pins.level[kDown] = true;  // the pin went back before the window ended
   fx.svc.on_timeout(kDebounce);
   TEST_ASSERT_TRUE(fx.ui.empty());
-  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms());
+  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms(kDebounce));
 }
 
 void test_ignores_edge_with_button_index_out_of_range() {
   InputFixture fx;
   fx.svc.on_edge({7, false, 0});
-  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms());
+  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms(kDebounce));
   TEST_ASSERT_TRUE(fx.ui.empty());
 }
 
@@ -234,6 +250,86 @@ void test_logs_the_drop_when_the_ui_queue_is_full() {
   TEST_ASSERT_TRUE(fx.log.has("Cola de UI llena"));
 }
 
+// Held-button repeat: the first beat comes kRepeatDelayMs after the press was confirmed.
+namespace {
+
+constexpr std::uint32_t kRepeatDelay = leeloo::buttons::kRepeatDelayMs;
+constexpr std::uint32_t kRepeatEvery = leeloo::buttons::kRepeatIntervalMs;
+
+void hold(InputFixture& fx, std::uint8_t button) {
+  fx.pins.level[button] = false;
+  fx.svc.on_edge({button, false, 0});
+  fx.svc.on_timeout(kDebounce);  // confirmed at kDebounce
+  Event e;
+  fx.ui.take(&e);  // the immediate Up/Down press
+}
+
+}  // namespace
+
+void test_held_up_repeats_after_the_delay_then_at_a_steady_pace() {
+  InputFixture fx;
+  hold(fx, kUp);
+  Event e;
+  TEST_ASSERT_EQUAL_UINT32(kRepeatDelay, fx.svc.wait_ms(kDebounce));
+  fx.svc.on_timeout(kDebounce + kRepeatDelay - 1);
+  TEST_ASSERT_FALSE(fx.ui.take(&e));
+  fx.svc.on_timeout(kDebounce + kRepeatDelay);
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_EQUAL((int)Event::UpRepeat, (int)e);
+  TEST_ASSERT_EQUAL_UINT32(kRepeatEvery, fx.svc.wait_ms(kDebounce + kRepeatDelay));
+  fx.svc.on_timeout(kDebounce + kRepeatDelay + kRepeatEvery);
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_EQUAL((int)Event::UpRepeat, (int)e);
+}
+
+void test_held_down_repeats_as_down_repeat() {
+  InputFixture fx;
+  hold(fx, kDown);
+  fx.svc.on_timeout(kDebounce + kRepeatDelay);
+  Event e;
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_EQUAL((int)Event::DownRepeat, (int)e);
+}
+
+void test_a_late_wake_up_posts_one_repeat_and_skips_the_missed_beats() {
+  InputFixture fx;
+  hold(fx, kUp);
+  fx.svc.on_timeout(kDebounce + 1000);  // the task slept far past several beats
+  Event e;
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_FALSE(fx.ui.take(&e));
+  TEST_ASSERT_TRUE(fx.svc.wait_ms(kDebounce + 1000) <= kRepeatEvery);
+  TEST_ASSERT_TRUE(fx.svc.wait_ms(kDebounce + 1000) > 0);
+}
+
+void test_releasing_the_button_stops_the_repeat() {
+  InputFixture fx;
+  hold(fx, kUp);
+  fx.pins.level[kUp] = true;
+  fx.svc.on_edge({kUp, true, 100});
+  fx.svc.on_timeout(100 + kDebounce);
+  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms(100 + kDebounce));
+  fx.svc.on_timeout(kDebounce + kRepeatDelay + 10);
+  TEST_ASSERT_TRUE(fx.ui.empty());
+}
+
+void test_a_lost_release_edge_does_not_repeat_forever() {
+  InputFixture fx;
+  hold(fx, kUp);
+  fx.pins.level[kUp] = true;  // released, but its edge never reached the task
+  fx.svc.on_timeout(kDebounce + kRepeatDelay);
+  TEST_ASSERT_TRUE(fx.ui.empty());
+  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms(kDebounce + kRepeatDelay));
+}
+
+void test_select_never_repeats() {
+  InputFixture fx;
+  hold(fx, kSelect);
+  TEST_ASSERT_EQUAL_UINT32(kWaitForever, fx.svc.wait_ms(kDebounce));
+  fx.svc.on_timeout(kDebounce + 2000);
+  TEST_ASSERT_TRUE(fx.ui.empty());
+}
+
 // --- RsvpService ----------------------------------------------------------------
 
 namespace {
@@ -242,9 +338,13 @@ struct RsvpFixture {
   Chan<Event> ui;
   Library lib;
   Log log;
+  SpeedStore speed;
   RsvpService svc;
-  RsvpFixture() : svc(&lib, &ui.q, nullptr, &log) {}
-  bool open(std::uint32_t now = 0) { return svc.handle({RsvpCmd::Open, 0}, now); }
+  explicit RsvpFixture(std::uint16_t stored_wpm = 300)
+      : speed(stored_wpm), svc(&lib, &ui.q, nullptr, &speed, &log) {}
+  bool open(std::uint32_t now = 0, std::uint32_t step = 25) {
+    return svc.handle({RsvpCmd::Open, 0, step}, now);
+  }
   std::string word() { return svc.frame().word; }
 };
 
@@ -323,11 +423,110 @@ void test_up_and_down_change_speed_by_one_step_and_show_the_label() {
   fx.open();
   fx.svc.handle({RsvpCmd::Up, 0}, 10);
   ReadingFrame f = fx.svc.frame();
-  TEST_ASSERT_EQUAL_UINT32(reader::kDefaultWpm + leeloo::rsvp::kWpmStep, f.wpm);
+  TEST_ASSERT_EQUAL_UINT32(reader::kDefaultWpm + leeloo::rsvp::kDefaultWpmStep, f.wpm);
   TEST_ASSERT_TRUE(f.show_wpm);
   fx.svc.handle({RsvpCmd::Down, 0}, 20);
   fx.svc.handle({RsvpCmd::Down, 0}, 30);
-  TEST_ASSERT_EQUAL_UINT32(reader::kDefaultWpm - leeloo::rsvp::kWpmStep, fx.svc.frame().wpm);
+  TEST_ASSERT_EQUAL_UINT32(reader::kDefaultWpm - leeloo::rsvp::kDefaultWpmStep, fx.svc.frame().wpm);
+}
+
+void test_open_starts_at_the_stored_speed() {
+  RsvpFixture fx(450);
+  fx.open();
+  TEST_ASSERT_EQUAL_UINT32(450, fx.svc.frame().wpm);
+}
+
+void test_open_aligns_the_stored_speed_to_the_selected_step() {
+  RsvpFixture fx(340);
+  fx.open(0, 100);
+  TEST_ASSERT_EQUAL_UINT32(300, fx.svc.frame().wpm);
+}
+
+void test_speed_changes_by_the_step_sent_with_open() {
+  RsvpFixture fx;
+  fx.open(0, 100);
+  fx.svc.handle({RsvpCmd::Up, 0}, 10);
+  TEST_ASSERT_EQUAL_UINT32(400, fx.svc.frame().wpm);
+}
+
+void test_close_saves_a_changed_speed_once() {
+  RsvpFixture fx;
+  fx.open();
+  fx.svc.handle({RsvpCmd::Up, 0}, 10);
+  fx.svc.handle({RsvpCmd::Close, 0}, 20);
+  TEST_ASSERT_EQUAL_UINT32(1, fx.speed.saves.size());
+  TEST_ASSERT_EQUAL_UINT16(325, fx.speed.saves.back());
+  fx.open();  // the next book starts from the saved speed and leaves it alone
+  fx.svc.handle({RsvpCmd::Close, 0}, 30);
+  TEST_ASSERT_EQUAL_UINT32(1, fx.speed.saves.size());
+}
+
+void test_leaving_without_touching_the_speed_keeps_the_stored_precision() {
+  RsvpFixture fx(325);  // saved with step 25, now opened with step 100
+  fx.open(0, 100);
+  TEST_ASSERT_EQUAL_UINT32(300, fx.svc.frame().wpm);
+  fx.svc.handle({RsvpCmd::Close, 0}, 20);
+  TEST_ASSERT_TRUE(fx.speed.saves.empty());
+}
+
+void test_close_without_a_speed_change_does_not_write() {
+  RsvpFixture fx;
+  fx.open();
+  fx.svc.handle({RsvpCmd::Close, 0}, 20);
+  TEST_ASSERT_TRUE(fx.speed.saves.empty());
+}
+
+void test_pause_does_not_save_the_speed() {
+  RsvpFixture fx;
+  fx.open();
+  fx.svc.handle({RsvpCmd::Up, 0}, 10);
+  fx.svc.handle({RsvpCmd::Select, 0}, 20);  // pause
+  TEST_ASSERT_TRUE(fx.speed.saves.empty());
+}
+
+void test_finishing_a_book_saves_the_speed() {
+  RsvpFixture fx;
+  fx.lib.text = book("uno");
+  fx.open();
+  fx.svc.handle({RsvpCmd::Up, 0}, 10);
+  fx.svc.on_timeout(5000);  // the single word has been held
+  TEST_ASSERT_EQUAL_UINT32(1, fx.speed.saves.size());
+  TEST_ASSERT_EQUAL_UINT16(325, fx.speed.saves.back());
+}
+
+void test_a_failed_speed_save_is_logged_and_retried_on_the_next_exit() {
+  RsvpFixture fx;
+  fx.speed.ok = false;
+  fx.open();
+  fx.svc.handle({RsvpCmd::Up, 0}, 10);
+  fx.svc.handle({RsvpCmd::Close, 0}, 20);
+  TEST_ASSERT_TRUE(fx.log.has("velocidad"));
+  TEST_ASSERT_TRUE(fx.speed.saves.empty());
+  fx.speed.ok = true;
+  fx.open();  // still starts from the speed that is on disk
+  fx.svc.handle({RsvpCmd::Up, 0}, 30);
+  fx.svc.handle({RsvpCmd::Close, 0}, 40);
+  TEST_ASSERT_EQUAL_UINT32(1, fx.speed.saves.size());
+}
+
+void test_held_buttons_change_speed_while_reading_and_do_nothing_while_paused() {
+  RsvpFixture fx;
+  fx.lib.text = book("uno dos tres cuatro cinco seis siete ocho nueve diez");
+  fx.open();
+  TEST_ASSERT_TRUE(fx.svc.handle({RsvpCmd::UpRepeat, 0}, 10));
+  TEST_ASSERT_EQUAL_UINT32(325, fx.svc.frame().wpm);
+  TEST_ASSERT_TRUE(fx.svc.handle({RsvpCmd::DownRepeat, 0}, 20));
+  TEST_ASSERT_EQUAL_UINT32(300, fx.svc.frame().wpm);
+  fx.svc.handle({RsvpCmd::Select, 0}, 30);  // pause
+  const std::size_t saves = fx.lib.saves.size();
+  TEST_ASSERT_FALSE(fx.svc.handle({RsvpCmd::DownRepeat, 0}, 40));  // a seek never repeats
+  TEST_ASSERT_EQUAL_UINT32(saves, fx.lib.saves.size());
+}
+
+void test_repeats_without_an_open_book_change_nothing() {
+  RsvpFixture fx;
+  TEST_ASSERT_FALSE(fx.svc.handle({RsvpCmd::UpRepeat, 0}, 0));
+  TEST_ASSERT_FALSE(fx.svc.handle({RsvpCmd::DownRepeat, 0}, 0));
 }
 
 void test_wpm_label_hides_when_its_time_is_up() {
@@ -480,6 +679,67 @@ void test_start_upload_in_automatico_starts_the_ap_and_polls_activity() {
   TEST_ASSERT_EQUAL_UINT32(NetService::kInactivityPollMs, fx.svc.wait_ms(1000));
 }
 
+void test_recording_upload_failure_is_reported_as_an_audio_event() {
+  NetFixture fx;
+  fx.net.start_ok = false;
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  Event e;
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_EQUAL((int)Event::AudioUploadStartFailed, (int)e);
+  TEST_ASSERT_TRUE(fx.ui.empty());
+}
+
+void test_recording_upload_session_times_out_with_the_audio_event() {
+  NetFixture fx;
+  fx.cmd(NetCmd::Boot, 0, WifiMode::Auto);
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  TEST_ASSERT_TRUE(fx.net.is_running);
+  fx.svc.on_timeout(kLimit);
+  TEST_ASSERT_FALSE(fx.net.is_running);
+  Event e;
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_EQUAL((int)Event::AudioUploadTimedOut, (int)e);
+}
+
+void test_a_book_session_after_a_recording_session_times_out_as_a_book_session() {
+  NetFixture fx;
+  fx.cmd(NetCmd::Boot, 0, WifiMode::Auto);
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  fx.cmd(NetCmd::StopRecordingUpload, 10);
+  fx.cmd(NetCmd::StartUpload, 20);
+  fx.svc.on_timeout(20 + kLimit);
+  Event e;
+  TEST_ASSERT_TRUE(fx.ui.take(&e));
+  TEST_ASSERT_EQUAL((int)Event::UploadTimedOut, (int)e);
+}
+
+void test_stop_recording_upload_stops_the_ap_in_auto_mode() {
+  NetFixture fx;
+  fx.cmd(NetCmd::Boot, 0, WifiMode::Auto);
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  fx.cmd(NetCmd::StopRecordingUpload, 5);
+  TEST_ASSERT_FALSE(fx.net.is_running);
+}
+
+void test_a_confirmed_transfer_stops_the_ap_after_a_short_grace_in_auto_mode() {
+  NetFixture fx;
+  fx.cmd(NetCmd::Boot, 0, WifiMode::Auto);
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  fx.cmd(NetCmd::RecordingTransferred, 100);
+  TEST_ASSERT_TRUE(fx.net.is_running);  // the phone still has its answer to receive
+  fx.svc.on_timeout(100 + NetService::kStopAfterSaveMs);
+  TEST_ASSERT_FALSE(fx.net.is_running);
+}
+
+void test_a_confirmed_transfer_keeps_the_ap_up_in_on_mode() {
+  NetFixture fx;
+  fx.cmd(NetCmd::Boot, 0, WifiMode::On);
+  fx.cmd(NetCmd::StartRecordingUpload, 0);
+  fx.cmd(NetCmd::RecordingTransferred, 100);
+  fx.svc.on_timeout(100 + NetService::kStopAfterSaveMs);
+  TEST_ASSERT_TRUE(fx.net.is_running);
+}
+
 void test_start_failure_reports_upload_start_failed() {
   NetFixture fx;
   fx.net.start_ok = false;
@@ -617,14 +877,15 @@ namespace {
 struct UiFixture {
   Chan<RsvpMsg> rsvp;
   Chan<NetMsg> net;
+  Chan<RecordingMsg> recording;
   Library lib;
   SettingsStore store;
   DisplayControl display;
   Log log;
   UiService svc;
-  explicit UiFixture(std::size_t net_capacity = 8)
+  explicit UiFixture(std::size_t net_capacity = 8, leeloo::settings::Settings initial = {})
       : net(net_capacity),
-        svc(leeloo::settings::Settings{}, &lib, &store, &display, &rsvp.q, &net.q, &log) {
+        svc(initial, &lib, &store, &display, &rsvp.q, &net.q, &recording.q, &log) {
     svc.sync_books();
   }
   void press(Event e) { svc.handle(e); }
@@ -657,6 +918,30 @@ void test_choosing_a_book_sends_open_with_its_index() {
   TEST_ASSERT_EQUAL((int)leeloo::ui::Screen::Reading, (int)fx.screen());
 }
 
+void test_open_carries_the_reading_step_from_settings() {
+  leeloo::settings::Settings s;
+  s.reading_step_ppm = 100;
+  UiFixture fx(8, s);
+  fx.presses({Event::Select, Event::Select});
+  RsvpMsg m;
+  TEST_ASSERT_TRUE(fx.rsvp.take(&m));
+  TEST_ASSERT_EQUAL((int)RsvpCmd::Open, (int)m.cmd);
+  TEST_ASSERT_EQUAL_UINT32(100, m.wpm_step);
+}
+
+void test_held_reading_buttons_are_forwarded_as_repeats() {
+  UiFixture fx;
+  fx.presses({Event::Select, Event::Select});
+  RsvpMsg m;
+  fx.rsvp.take(&m);
+  fx.press(Event::UpRepeat);
+  fx.press(Event::DownRepeat);
+  TEST_ASSERT_TRUE(fx.rsvp.take(&m));
+  TEST_ASSERT_EQUAL((int)RsvpCmd::UpRepeat, (int)m.cmd);
+  TEST_ASSERT_TRUE(fx.rsvp.take(&m));
+  TEST_ASSERT_EQUAL((int)RsvpCmd::DownRepeat, (int)m.cmd);
+}
+
 void test_reading_buttons_are_forwarded_and_back_closes_the_book() {
   UiFixture fx;
   fx.presses({Event::Select, Event::Select});  // open book 0
@@ -674,6 +959,73 @@ void test_reading_buttons_are_forwarded_and_back_closes_the_book() {
   TEST_ASSERT_EQUAL((int)leeloo::ui::Screen::Read, (int)fx.screen());
 }
 
+namespace {
+// Root > Grabadora (third row), then Nueva grabación.
+void start_recording(UiFixture& fx) {
+  fx.presses({Event::Down, Event::Down, Event::Select, Event::Select});
+}
+}  // namespace
+
+void test_grabar_sends_start_and_the_pause_stop_commands_follow() {
+  UiFixture fx;
+  start_recording(fx);
+  RecordingMsg m;
+  TEST_ASSERT_TRUE(fx.recording.take(&m));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::Start, (int)m.cmd);
+  fx.press(Event::Select);  // Pausar
+  fx.press(Event::Down);
+  fx.press(Event::Select);  // Detener
+  TEST_ASSERT_TRUE(fx.recording.take(&m));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::TogglePause, (int)m.cmd);
+  TEST_ASSERT_TRUE(fx.recording.take(&m));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::Stop, (int)m.cmd);
+}
+
+void test_a_lost_start_command_returns_from_the_recording_screen_with_an_error() {
+  UiFixture fx;
+  for (int i = 0; i < 8; ++i) fx.recording.q.send(RecordingMsg{RecordingCmd::Stop}, 0);  // fill it
+  start_recording(fx);
+  TEST_ASSERT_TRUE(fx.log.has("grabación llena"));
+  TEST_ASSERT_EQUAL((int)leeloo::ui::Screen::Message, (int)fx.screen());
+  TEST_ASSERT_EQUAL((int)leeloo::ui::Message::AudioStartFailed, (int)fx.svc.model().message());
+}
+
+void test_audio_upload_and_delete_commands_reach_their_services() {
+  UiFixture fx;
+  fx.press(Event::AudioAvailable);
+  fx.presses({Event::Down, Event::Down, Event::Select});  // Grabadora menu
+  fx.press(Event::Select);                                // Enviar al móvil
+  NetMsg n;
+  TEST_ASSERT_TRUE(fx.net.take(&n));
+  TEST_ASSERT_EQUAL((int)NetCmd::StartRecordingUpload, (int)n.cmd);
+  fx.press(Event::Select);  // < Atrás
+  TEST_ASSERT_TRUE(fx.net.take(&n));
+  TEST_ASSERT_EQUAL((int)NetCmd::StopRecordingUpload, (int)n.cmd);
+  fx.presses({Event::Down, Event::Select, Event::Down, Event::Select});  // Borrar grabación > Borrar
+  RecordingMsg r;
+  TEST_ASSERT_TRUE(fx.recording.take(&r));
+  TEST_ASSERT_EQUAL((int)RecordingCmd::Delete, (int)r.cmd);
+}
+
+void test_the_net_service_hears_of_a_transfer_exactly_once() {
+  UiFixture fx;
+  fx.press(Event::AudioAvailable);
+  fx.presses({Event::Down, Event::Down, Event::Select, Event::Select});  // Enviar al móvil
+  NetMsg n;
+  fx.net.take(&n);  // StartRecordingUpload
+  fx.press(Event::AudioTransferred);
+  TEST_ASSERT_TRUE(fx.net.take(&n));
+  TEST_ASSERT_EQUAL((int)NetCmd::RecordingTransferred, (int)n.cmd);
+  TEST_ASSERT_TRUE(fx.net.empty());
+}
+
+void test_a_transfer_on_another_screen_sends_nothing_to_the_net_service() {
+  UiFixture fx;
+  fx.press(Event::AudioAvailable);
+  fx.press(Event::AudioTransferred);  // the phone confirmed while the root menu was open
+  TEST_ASSERT_TRUE(fx.net.empty());
+}
+
 void test_book_open_failure_from_rsvp_shows_a_message() {
   UiFixture fx;
   fx.presses({Event::Select, Event::Select, Event::BookOpenFailed});
@@ -683,7 +1035,7 @@ void test_book_open_failure_from_rsvp_shows_a_message() {
 
 void test_upload_screen_sends_start_and_back_sends_stop() {
   UiFixture fx;
-  fx.presses({Event::Down, Event::Select, Event::Select});  // Biblioteca > Subir
+  fx.presses({Event::Down, Event::Select, Event::Select});  // Biblioteca > Añadir libro
   NetMsg m;
   TEST_ASSERT_TRUE(fx.net.take(&m));
   TEST_ASSERT_EQUAL((int)NetCmd::StartUpload, (int)m.cmd);
@@ -740,14 +1092,13 @@ void test_failed_delete_shows_the_error_and_keeps_the_count() {
   TEST_ASSERT_EQUAL_UINT32(2, fx.svc.model().book_count());
 }
 
-void test_changing_contrast_saves_applies_and_tells_net() {
+void test_changing_brightness_saves_applies_and_tells_net() {
   UiFixture fx;
-  // Ajustes > Contraste > edit > one step down
-  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Select, Event::Select,
-              Event::Down});
+  // Ajustes > Brillo > edit > one step down
+  fx.presses({Event::Down, Event::Down, Event::Down, Event::Select, Event::Select, Event::Select, Event::Down});
   TEST_ASSERT_EQUAL(1, fx.store.saves);
-  TEST_ASSERT_EQUAL_UINT8(95, fx.store.last.contrast_percent);
-  TEST_ASSERT_EQUAL_UINT8(leeloo::settings::display_register(100, 95), fx.display.last);
+  TEST_ASSERT_EQUAL_UINT8(95, fx.store.last.brightness_percent);
+  TEST_ASSERT_EQUAL_UINT8(leeloo::settings::display_register(95), fx.display.last);
   NetMsg m;
   TEST_ASSERT_TRUE(fx.net.take(&m));
   TEST_ASSERT_EQUAL((int)NetCmd::ApplyWifi, (int)m.cmd);
@@ -757,7 +1108,7 @@ void test_changing_contrast_saves_applies_and_tells_net() {
 void test_changing_wifi_mode_sends_the_new_mode_to_net() {
   UiFixture fx;
   // Ajustes > Wi-Fi > edit > next mode
-  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Down, Event::Select,
+  fx.presses({Event::Down, Event::Down, Event::Down, Event::Select, Event::Down, Event::Down, Event::Select,
               Event::Select, Event::Up});
   NetMsg m;
   TEST_ASSERT_TRUE(fx.net.take(&m));
@@ -768,7 +1119,7 @@ void test_changing_wifi_mode_sends_the_new_mode_to_net() {
 void test_settings_save_failure_is_logged_and_still_applied() {
   UiFixture fx;
   fx.store.ok = false;
-  fx.presses({Event::Down, Event::Down, Event::Select, Event::Down, Event::Select, Event::Select,
+  fx.presses({Event::Down, Event::Down, Event::Down, Event::Select, Event::Down, Event::Select, Event::Select,
               Event::Down});
   TEST_ASSERT_TRUE(fx.log.has("Ajustes"));
   TEST_ASSERT_EQUAL(1, fx.display.calls);
@@ -825,6 +1176,22 @@ void test_latest_publish_wins_when_the_display_is_slow() {
   TEST_ASSERT_FALSE(fx.read());
 }
 
+void test_the_recording_frame_is_delivered_and_does_not_touch_the_reading_frame() {
+  ViewFixture fx;
+  fx.view.publish_frame(ViewFixture::frame_with("uno"));
+  RecordingFrame rec;
+  rec.active = true;
+  rec.paused = true;
+  rec.elapsed_seconds = 12;
+  rec.max_seconds = 120;
+  fx.view.publish_recording(rec);
+  TEST_ASSERT_TRUE(fx.read());
+  TEST_ASSERT_TRUE(fx.snap.recording.active);
+  TEST_ASSERT_TRUE(fx.snap.recording.paused);
+  TEST_ASSERT_EQUAL_UINT32(12, fx.snap.recording.elapsed_seconds);
+  TEST_ASSERT_EQUAL_STRING("uno", fx.snap.frame.word);
+}
+
 void test_each_publish_wakes_the_display_outside_the_lock() {
   ViewFixture fx;
   fx.view.publish_frame(ViewFixture::frame_with("uno"));
@@ -876,11 +1243,18 @@ int main(int, char**) {
   RUN_TEST(test_view_has_nothing_to_read_before_the_first_publish);
   RUN_TEST(test_published_state_is_delivered_once);
   RUN_TEST(test_latest_publish_wins_when_the_display_is_slow);
+  RUN_TEST(test_the_recording_frame_is_delivered_and_does_not_touch_the_reading_frame);
   RUN_TEST(test_each_publish_wakes_the_display_outside_the_lock);
   RUN_TEST(test_producers_do_not_overwrite_each_others_part);
   RUN_TEST(test_contrast_request_is_handed_over_once);
   RUN_TEST(test_read_balances_the_lock);
   RUN_TEST(test_up_press_posts_up_once_the_level_is_stable);
+  RUN_TEST(test_held_up_repeats_after_the_delay_then_at_a_steady_pace);
+  RUN_TEST(test_held_down_repeats_as_down_repeat);
+  RUN_TEST(test_a_late_wake_up_posts_one_repeat_and_skips_the_missed_beats);
+  RUN_TEST(test_releasing_the_button_stops_the_repeat);
+  RUN_TEST(test_a_lost_release_edge_does_not_repeat_forever);
+  RUN_TEST(test_select_never_repeats);
   RUN_TEST(test_select_released_before_long_press_posts_select);
   RUN_TEST(test_select_held_past_long_press_posts_back);
   RUN_TEST(test_bounce_that_returns_to_idle_posts_nothing);
@@ -892,6 +1266,17 @@ int main(int, char**) {
   RUN_TEST(test_open_failure_reports_book_open_failed);
   RUN_TEST(test_book_without_start_marker_fails_and_is_released);
   RUN_TEST(test_book_with_empty_body_finishes_at_once);
+  RUN_TEST(test_open_starts_at_the_stored_speed);
+  RUN_TEST(test_open_aligns_the_stored_speed_to_the_selected_step);
+  RUN_TEST(test_speed_changes_by_the_step_sent_with_open);
+  RUN_TEST(test_close_saves_a_changed_speed_once);
+  RUN_TEST(test_leaving_without_touching_the_speed_keeps_the_stored_precision);
+  RUN_TEST(test_close_without_a_speed_change_does_not_write);
+  RUN_TEST(test_pause_does_not_save_the_speed);
+  RUN_TEST(test_finishing_a_book_saves_the_speed);
+  RUN_TEST(test_a_failed_speed_save_is_logged_and_retried_on_the_next_exit);
+  RUN_TEST(test_held_buttons_change_speed_while_reading_and_do_nothing_while_paused);
+  RUN_TEST(test_repeats_without_an_open_book_change_nothing);
   RUN_TEST(test_select_pauses_and_saves_then_resumes);
   RUN_TEST(test_commands_without_an_open_book_change_nothing);
   RUN_TEST(test_up_and_down_change_speed_by_one_step_and_show_the_label);
@@ -911,6 +1296,12 @@ int main(int, char**) {
   RUN_TEST(test_boot_with_automatico_keeps_the_ap_off);
   RUN_TEST(test_boot_failure_with_wifi_on_is_logged);
   RUN_TEST(test_start_upload_in_automatico_starts_the_ap_and_polls_activity);
+  RUN_TEST(test_recording_upload_failure_is_reported_as_an_audio_event);
+  RUN_TEST(test_recording_upload_session_times_out_with_the_audio_event);
+  RUN_TEST(test_a_book_session_after_a_recording_session_times_out_as_a_book_session);
+  RUN_TEST(test_stop_recording_upload_stops_the_ap_in_auto_mode);
+  RUN_TEST(test_a_confirmed_transfer_stops_the_ap_after_a_short_grace_in_auto_mode);
+  RUN_TEST(test_a_confirmed_transfer_keeps_the_ap_up_in_on_mode);
   RUN_TEST(test_start_failure_reports_upload_start_failed);
   RUN_TEST(test_start_upload_reuses_an_ap_that_is_already_up);
   RUN_TEST(test_stop_upload_stops_the_ap_in_automatico);
@@ -928,7 +1319,14 @@ int main(int, char**) {
 
   RUN_TEST(test_sync_books_follows_the_library_without_resetting_the_cursor);
   RUN_TEST(test_choosing_a_book_sends_open_with_its_index);
+  RUN_TEST(test_open_carries_the_reading_step_from_settings);
+  RUN_TEST(test_held_reading_buttons_are_forwarded_as_repeats);
   RUN_TEST(test_reading_buttons_are_forwarded_and_back_closes_the_book);
+  RUN_TEST(test_grabar_sends_start_and_the_pause_stop_commands_follow);
+  RUN_TEST(test_a_lost_start_command_returns_from_the_recording_screen_with_an_error);
+  RUN_TEST(test_audio_upload_and_delete_commands_reach_their_services);
+  RUN_TEST(test_the_net_service_hears_of_a_transfer_exactly_once);
+  RUN_TEST(test_a_transfer_on_another_screen_sends_nothing_to_the_net_service);
   RUN_TEST(test_book_open_failure_from_rsvp_shows_a_message);
   RUN_TEST(test_upload_screen_sends_start_and_back_sends_stop);
   RUN_TEST(test_save_on_the_upload_screen_notifies_net_and_refreshes_the_count);
@@ -936,7 +1334,7 @@ int main(int, char**) {
   RUN_TEST(test_confirmed_delete_removes_the_book_and_resyncs);
   RUN_TEST(test_cancelled_delete_keeps_the_book);
   RUN_TEST(test_failed_delete_shows_the_error_and_keeps_the_count);
-  RUN_TEST(test_changing_contrast_saves_applies_and_tells_net);
+  RUN_TEST(test_changing_brightness_saves_applies_and_tells_net);
   RUN_TEST(test_changing_wifi_mode_sends_the_new_mode_to_net);
   RUN_TEST(test_settings_save_failure_is_logged_and_still_applied);
   RUN_TEST(test_full_net_queue_is_logged_instead_of_dropped_silently);

@@ -4,13 +4,15 @@ namespace leeloo::app {
 
 UiService::UiService(const settings::Settings& initial, ILibrary* library, ISettingsStore* store,
                      IDisplayControl* display, rtos::Queue<RsvpMsg>* rsvp_out,
-                     rtos::Queue<NetMsg>* net_out, ILog* log)
+                     rtos::Queue<NetMsg>* net_out,
+                     rtos::Queue<RecordingMsg>* recording_out, ILog* log)
     : ui_(initial),
       library_(library),
       store_(store),
       display_(display),
       rsvp_out_(rsvp_out),
       net_out_(net_out),
+      recording_out_(recording_out),
       log_(log) {}
 
 void UiService::sync_books() {
@@ -33,11 +35,21 @@ void UiService::handle(ui::Event event) {
 
 void UiService::execute(const ui::Outcome& out) {
   const auto to_rsvp = [this](RsvpCmd cmd, std::size_t index) {
-    post(rsvp_out_, RsvpMsg{cmd, index}, log_, "Cola de lectura llena: se pierde una orden");
+    post(rsvp_out_, RsvpMsg{cmd, index, ui_.settings().reading_step_ppm}, log_,
+         "Cola de lectura llena: se pierde una orden");
   };
   const auto to_net = [this](NetCmd cmd) {
     post(net_out_, NetMsg{cmd, settings::WifiMode::Auto, false}, log_,
          "Cola de red llena: se pierde una orden");
+  };
+
+  // A recorder that cannot be reached is reported as a failed start, so the Recording
+  // screen never waits for an answer that will not come.
+  const auto to_recording = [this](RecordingCmd cmd) {
+    if (!recording_out_->send(RecordingMsg{cmd}, kPostTimeoutMs)) {
+      if (log_ != nullptr) log_->log("Cola de grabación llena: se pierde una orden");
+      if (cmd == RecordingCmd::Start) handle(ui::Event::AudioStartFailed);
+    }
   };
 
   switch (out.command) {
@@ -58,6 +70,33 @@ void UiService::execute(const ui::Outcome& out) {
     case ui::Command::ReadingDown:
       to_rsvp(RsvpCmd::Down, 0);
       return;
+    case ui::Command::ReadingUpRepeat:
+      to_rsvp(RsvpCmd::UpRepeat, 0);
+      return;
+    case ui::Command::ReadingDownRepeat:
+      to_rsvp(RsvpCmd::DownRepeat, 0);
+      return;
+    case ui::Command::StartRecording:
+      to_recording(RecordingCmd::Start);
+      return;
+    case ui::Command::ToggleRecordingPause:
+      to_recording(RecordingCmd::TogglePause);
+      return;
+    case ui::Command::StopRecording:
+      to_recording(RecordingCmd::Stop);
+      return;
+    case ui::Command::DeleteRecording:
+      to_recording(RecordingCmd::Delete);
+      return;
+    case ui::Command::StartRecordingUpload:
+      to_net(NetCmd::StartRecordingUpload);
+      return;
+    case ui::Command::StopRecordingUpload:
+      to_net(NetCmd::StopRecordingUpload);
+      return;
+    case ui::Command::RecordingTransferred:
+      to_net(NetCmd::RecordingTransferred);
+      return;
     case ui::Command::StartUpload:
       to_net(NetCmd::StartUpload);
       return;
@@ -71,8 +110,10 @@ void UiService::execute(const ui::Outcome& out) {
     case ui::Command::SaveSettings: {
       const settings::Settings& s = ui_.settings();
       if (!store_->save(s) && log_ != nullptr) log_->log("Ajustes: no se pudo guardar");
-      display_->set_contrast(settings::display_register(s.brightness_percent, s.contrast_percent));
-      post(net_out_, NetMsg{NetCmd::ApplyWifi, s.wifi, ui_.screen() == ui::Screen::Upload}, log_,
+      display_->set_contrast(settings::display_register(s.brightness_percent));
+      const bool wifi_screen_open =
+          ui_.screen() == ui::Screen::Upload || ui_.screen() == ui::Screen::RecordingUpload;
+      post(net_out_, NetMsg{NetCmd::ApplyWifi, s.wifi, wifi_screen_open}, log_,
            "Cola de red llena: se pierde ApplyWifi");
       return;
     }
