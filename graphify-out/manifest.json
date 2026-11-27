@@ -12,8 +12,8 @@
     "semantic_hash": "963a03137c92330d5958a06fc86ac3e0"
   },
   ".agents/MEMORY.md": {
-    "mtime": 1794856292.2913306,
-    "seen": 1795541101.521344,
+    "mtime": 1795782394.6475852,
+    "seen": 1795796502.872131,
     "ast_hash": "9bf6f8518a95e7b61e172deb75170a9b",
     "semantic_hash": ""
   },
@@ -24,9 +24,9 @@
     "semantic_hash": "21acef690826256670a149410a2673a7"
   },
   "README.md": {
-    "mtime": 1793878936.969928,
-    "seen": 1793879511.4157581,
-    "ast_hash": "cfbd3946b8d46aeaff0d187d56ec99c5",
+    "mtime": 1795782955.7670932,
+    "seen": 1795796502.872134,
+    "ast_hash": "c35889e90dc662de4af47e460497f88d",
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE-ANSWERS.md": {
@@ -96,20 +96,20 @@
     "semantic_hash": "b7a512ffb5fd6067270ea270b51169c1"
   },
   "lib/rsvp/rsvp.cpp": {
-    "mtime": 1795774525.960349,
-    "seen": 1795774742.748111,
+    "mtime": 1795782394.717903,
+    "seen": 1795796502.872071,
     "ast_hash": "2697f5b90a3a23235d991b47f6270987",
     "semantic_hash": ""
   },
   "lib/rsvp/rsvp.h": {
-    "mtime": 1795774525.959887,
-    "seen": 1795774742.748112,
+    "mtime": 1795782394.752268,
+    "seen": 1795796502.872072,
     "ast_hash": "53a3ee84595e9419e4c41e44aee16fd2",
     "semantic_hash": ""
   },
   "test/test_rsvp/test_rsvp.cpp": {
-    "mtime": 1795774628.0115004,
-    "seen": 1795774742.748139,
+    "mtime": 1795782394.888244,
+    "seen": 1795796502.8721092,
     "ast_hash": "642b59eee6caada8311d92eab382d03c",
     "semantic_hash": ""
   },
@@ -222,8 +222,8 @@
     "semantic_hash": ""
   },
   "docs/DESIGN.md": {
-    "mtime": 1795778895.5021567,
-    "seen": 1795778912.76655,
+    "mtime": 1795782394.684664,
+    "seen": 1795796502.872137,
     "ast_hash": "bcdcd32f93ad855ec7be2d253df6683e",
     "semantic_hash": ""
   },
@@ -264,9 +264,9 @@
     "semantic_hash": ""
   },
   "web/app.js": {
-    "mtime": 1795779168.2419333,
-    "seen": 1795779214.255254,
-    "ast_hash": "28fe7c3c47045985718176cc02293e05",
+    "mtime": 1795781363.1905859,
+    "seen": 1795796502.872117,
+    "ast_hash": "be3de852bae2ff9c76c6b4d3654016ec",
     "semantic_hash": ""
   },
   "web/build.mjs": {
@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "web/index.html": {
-    "mtime": 1795779183.537391,
-    "seen": 1795779214.2552881,
-    "ast_hash": "052769ee141c9f0497489c27cfa73340",
+    "mtime": 1795781357.7661948,
+    "seen": 1795796502.8721511,
+    "ast_hash": "11e7ff756e60713a7d5aed4ac055fe52",
     "semantic_hash": ""
   },
   "lib/settings/settings.cpp": {
@@ -462,14 +462,14 @@
     "semantic_hash": ""
   },
   "src/rsvp_view.cpp": {
-    "mtime": 1793900262.762844,
-    "seen": 1793900304.235132,
+    "mtime": 1795782394.8192172,
+    "seen": 1795796502.8720908,
     "ast_hash": "e503cc5fee38ea2478123f1d99e46ab9",
     "semantic_hash": ""
   },
   "src/rsvp_view.h": {
-    "mtime": 1793900253.3858056,
-    "seen": 1793900304.235133,
+    "mtime": 1795782394.8535142,
+    "seen": 1795796502.872092,
     "ast_hash": "cbb07e102518162aaeb0539f2a7ad619",
     "semantic_hash": ""
   },
@@ -618,21 +618,21 @@
     "semantic_hash": ""
   },
   "hardware/enclosure/build_enclosure.py": {
-    "mtime": 1795699134.013807,
-    "seen": 1795699157.131849,
-    "ast_hash": "3ed689a181fd9f4217ffa8590ef41100",
+    "mtime": 1795796746.1876009,
+    "seen": 1795796786.768862,
+    "ast_hash": "4e2b3fdc63a837de9c0c013f5fa9ddc3",
     "semantic_hash": ""
   },
   "docs/hardware-checklists/enclosure.md": {
-    "mtime": 1795699155.5670218,
-    "seen": 1795699157.131933,
-    "ast_hash": "835779f4ec35e6fb0b25e17160270bc5",
+    "mtime": 1795796480.5396113,
+    "seen": 1795796502.872144,
+    "ast_hash": "7f1859e2dc22ea1916f544e9c37d2cde",
     "semantic_hash": ""
   },
   "hardware/enclosure/README.md": {
-    "mtime": 1795699155.5667975,
-    "seen": 1795699157.1319392,
-    "ast_hash": "caada8c03efc7d985658729eb6e1b1e2",
+    "mtime": 1795796480.5343356,
+    "seen": 1795796502.87215,
+    "ast_hash": "72c7c34e947964600529bae69ceb36f1",
     "semantic_hash": ""
   },
   "tools/mic_test/main.cpp": {
@@ -756,9 +756,9 @@
     "semantic_hash": ""
   },
   "docs/hardware-checklists/power.md": {
-    "mtime": 1795778647.0219395,
-    "seen": 1795778664.1898282,
-    "ast_hash": "ee25bb0b2e18ef4dccfe22bc352b801c",
+    "mtime": 1795782955.762473,
+    "seen": 1795796502.872148,
+    "ast_hash": "d193784a0e629fa7caf26dfa493cb686",
     "semantic_hash": ""
   },
   "lib/boot_anim/boot_anim.cpp": {

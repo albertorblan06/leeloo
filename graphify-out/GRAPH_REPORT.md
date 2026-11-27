@@ -1,17 +1,17 @@
 # Graph Report - leeloo  (2026-11-27)
 
 ## Corpus Check
-- 130 files · ~81,436 words
+- 130 files · ~82,438 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: .stl 4, (none) 2, .csv 1)
 
 ## Summary
-- 2266 nodes · 4695 edges · 104 communities (94 shown, 10 thin omitted)
+- 2268 nodes · 4701 edges · 106 communities (95 shown, 11 thin omitted)
 - Extraction: 88% EXTRACTED · 12% INFERRED · 0% AMBIGUOUS · INFERRED: 570 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `f09916d8`
+- Built from commit: `d8dbc19f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -40,7 +40,7 @@
 - .take
 - test_recording.cpp
 - build.mjs
-- display_ui.cpp
+- Ui
 - rsvp_view.cpp
 - test_ui.cpp
 - test_recording_service.cpp
@@ -103,18 +103,20 @@
 - IMic
 - Leeloo Architecture Questionnaire
 - CI workflow (ci.yml)
-- Ui
+- algorithm
 - RSVP behavior (150-800 WPM, word tokens, byte-offset anchor)
 - format.js
-- Status
+- Browser-side PDF conversion
 - power.cpp
 - ReadingFrame
 - RecordingMsg
 - DisplayControl
 - format_pin
+- FakeMutex
+- ISpeedStore
 - app.js
 - RecordingFrame
-- INotifier
+- FakeNotifier
 - Debouncer
 
 ## God Nodes (most connected - your core abstractions)
@@ -149,14 +151,14 @@
 - **Requirements to architecture to plan to roadmap chain** — docs_architecture_answers, docs_architecture, docs_implementation_plan, docs_roadmap [EXTRACTED 1.00]
 - **Phone to device book transfer pipeline** — docs_architecture_browser_conversion, docs_architecture_wifi_session, docs_architecture_book_format, docs_architecture_littlefs_storage, docs_architecture_rsvp_behavior [INFERRED 0.85]
 
-## Communities (104 total, 10 thin omitted)
+## Communities (106 total, 11 thin omitted)
 
 ### Community 0 - "build_enclosure.py"
 Cohesion: 0.08
 Nodes (31): apply_colours(), box(), build(), build_cover(), chamfer(), check(), circles_sketch(), combine() (+23 more)
 
 ### Community 1 - "Leeloo Roadmap"
-Cohesion: 0.20
+Cohesion: 0.19
 Nodes (22): Agent Context (CONTEXT.md), Agent Errors and Lessons, Agent Memory (MEMORY.md), Append-only memory rule, Agent Workflow (WORKFLOW.md), Canary Flag, Commit Policy, Project file architecture table (+14 more)
 
 ### Community 2 - "unity"
@@ -185,7 +187,7 @@ Nodes (41): BestSplit, byte, cost, letters, classify(), count_letters(), count_n
 
 ### Community 9 - "NetService"
 Cohesion: 0.15
-Nodes (12): NetService, applied_wifi_, auto_session_, kInactivityPollMs, kStopAfterSaveMs, log_, net_, recording_session_ (+4 more)
+Nodes (11): NetService, applied_wifi_, auto_session_, kInactivityPollMs, kStopAfterSaveMs, log_, net_, recording_session_ (+3 more)
 
 ### Community 10 - "OLED RSVP smoke test"
 Cohesion: 0.40
@@ -216,7 +218,7 @@ Cohesion: 0.11
 Nodes (19): 10. Source notes, 1. Principles, 2. Web app tokens (measured on Loudop), 3.1 Grid, 3.2 Hierarchy, 3.3 Scrolling and wrapping, 3.4 Motion, 3. OLED rules (128x64, monochrome) (+11 more)
 
 ### Community 17 - "Upload web API contract"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (14): 1. Session lifecycle, 2. Static assets, 3.1 `POST /api/auth`, 3.2 `POST /api/books`, 3.3 `GET /api/recording`, 3.4 `POST /api/recording/ack`, 3.5 Not a device endpoint: transcription, 3. Endpoints (+6 more)
 
 ### Community 18 - "test_upload.cpp"
@@ -243,9 +245,9 @@ Nodes (29): hold(), start_recording(), test_a_late_wake_up_posts_one_repeat_and_
 Cohesion: 0.07
 Nodes (35): bytes_to_write(), Format, max_pcm_bytes, max_seconds, sample_rate, make_wav_header(), pause_expired(), pcm_bytes_for() (+27 more)
 
-### Community 25 - "display_ui.cpp"
-Cohesion: 0.14
-Nodes (33): book_label(), draw_about(), draw_back_row(), draw_brightness(), draw_delete_confirm(), draw_delete_list(), draw_line(), draw_list() (+25 more)
+### Community 25 - "Ui"
+Cohesion: 0.07
+Nodes (49): Outcome, command, index, Ui, entering_back_, return_to_, book_label(), compose_slide_frame() (+41 more)
 
 ### Community 26 - "rsvp_view.cpp"
 Cohesion: 0.16
@@ -268,8 +270,8 @@ Cohesion: 0.18
 Nodes (11): acknowledgeRecording(), ApiError, authenticate(), errorFromResponse(), errorMessage(), fetchRecording(), messages, uploadBook() (+3 more)
 
 ### Community 31 - "app_adapters.cpp"
-Cohesion: 0.11
-Nodes (7): GpioPins, NvsSettings, SerialLog, SoftAp, pin_, StorageLibrary, text_
+Cohesion: 0.12
+Nodes (7): NvsSettings, NvsSpeed, SerialLog, SoftAp, pin_, StorageLibrary, text_
 
 ### Community 32 - "tasks.cpp"
 Cohesion: 0.11
@@ -280,8 +282,8 @@ Cohesion: 0.05
 Nodes (59): body_offset(), is_continuation(), is_space(), previous_word_start(), Reader, beat_ms_, current_, due_ms_ (+51 more)
 
 ### Community 34 - "RsvpFixture"
-Cohesion: 0.20
-Nodes (5): ISpeedStore, SpeedStore, ok, saves, stored
+Cohesion: 0.13
+Nodes (10): RsvpFixture, lib, log, speed, svc, ui, SpeedStore, ok (+2 more)
 
 ### Community 35 - "RSVP reading on hardware"
 Cohesion: 0.25
@@ -309,7 +311,7 @@ Nodes (7): Before you start (blockers found while writing this), Conversion in t
 
 ### Community 41 - "App"
 Cohesion: 0.06
-Nodes (28): NvsSpeed, App, ap, contrast, display_wake, edge_port, edges, input (+20 more)
+Nodes (28): GpioPins, App, ap, contrast, display_wake, edge_port, edges, input (+20 more)
 
 ### Community 42 - "Command"
 Cohesion: 0.10
@@ -332,12 +334,12 @@ Cohesion: 0.09
 Nodes (32): test_a_book_session_after_a_recording_session_times_out_as_a_book_session(), test_a_confirmed_transfer_keeps_the_ap_up_in_on_mode(), test_a_confirmed_transfer_stops_the_ap_after_a_short_grace_in_auto_mode(), test_a_lost_release_edge_does_not_repeat_forever(), test_boot_failure_with_wifi_on_is_logged(), test_boot_with_automatico_keeps_the_ap_off(), test_boot_with_wifi_on_starts_the_ap(), test_bounce_that_returns_to_idle_posts_nothing() (+24 more)
 
 ### Community 49 - "InputService"
-Cohesion: 0.12
-Nodes (14): InputService, InputService::InputService(), log_, pins_, settling_, states_, ui_out_, repeats() (+6 more)
+Cohesion: 0.16
+Nodes (10): InputService, InputService::InputService(), log_, pins_, settling_, states_, ui_out_, repeats() (+2 more)
 
 ### Community 50 - "RsvpMsg"
-Cohesion: 0.14
-Nodes (12): RsvpCmd, Close, Down, DownRepeat, Open, Select, Up, UpRepeat (+4 more)
+Cohesion: 0.11
+Nodes (16): RawEdge, button, high, ms, RsvpCmd, Close, Down, DownRepeat (+8 more)
 
 ### Community 51 - "Library"
 Cohesion: 0.10
@@ -356,8 +358,8 @@ Cohesion: 0.16
 Nodes (8): update(), ViewModel, display_, mutex_, state_, version_, DisplayContrast, view_
 
 ### Community 55 - "RsvpFixture"
-Cohesion: 0.11
-Nodes (14): Chan, port, q, NetFixture, log, net, svc, ui (+6 more)
+Cohesion: 0.18
+Nodes (8): Chan, port, q, NetFixture, log, net, svc, ui
 
 ### Community 56 - "test_boot_anim.cpp"
 Cohesion: 0.07
@@ -380,7 +382,7 @@ Cohesion: 0.15
 Nodes (13): NetCmd, ApplyWifi, Boot, RecordingTransferred, SavedOnUploadScreen, StartRecordingUpload, StartUpload, StopRecordingUpload (+5 more)
 
 ### Community 62 - "audio_adapters.cpp"
-Cohesion: 0.10
+Cohesion: 0.12
 Nodes (5): I2sMic, installed_, LittleFsRecordingStore, file_, locked_
 
 ### Community 63 - "UiFixture"
@@ -392,7 +394,7 @@ Cohesion: 0.32
 Nodes (4): load(), load_reading_wpm(), save(), save_reading_wpm()
 
 ### Community 65 - "Log"
-Cohesion: 0.20
+Cohesion: 0.22
 Nodes (7): Log, lines, test_a_failed_speed_save_is_logged_and_retried_on_the_next_exit(), test_full_net_queue_is_logged_instead_of_dropped_silently(), test_logs_the_drop_when_the_ui_queue_is_full(), test_save_failure_is_logged_not_ignored(), test_settings_save_failure_is_logged_and_still_applied()
 
 ### Community 66 - "LiPo + TP4056 charging (bring-up, ESP32 NOT connected)"
@@ -424,7 +426,7 @@ Cohesion: 0.43
 Nodes (3): IMutex, ScopedLock, mutex_
 
 ### Community 73 - "rtos_freertos.cpp"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (10): IClock, Clock, Mutex, handle_, Queue, handle_, item_size_, TaskNotifier (+2 more)
 
 ### Community 74 - "DEVICE-MENU.md"
@@ -436,8 +438,8 @@ Cohesion: 0.10
 Nodes (21): Screen, About, Brightness, DeleteConfirm, DeleteList, Manage, Message, PowerConfirm (+13 more)
 
 ### Community 77 - "ViewFixture"
-Cohesion: 0.12
-Nodes (13): FakeMutex, depth, locks, FakeNotifier, count, depth_at_last, mutex, ViewFixture (+5 more)
+Cohesion: 0.29
+Nodes (6): ViewFixture, display, mutex, seen, snap, view
 
 ### Community 78 - "Leeloo Product Architecture"
 Cohesion: 0.23
@@ -460,8 +462,8 @@ Cohesion: 0.17
 Nodes (7): Net, is_running, last_activity, marks, start_ok, starts, stops
 
 ### Community 83 - "Switching off and on (deep sleep)"
-Cohesion: 0.40
-Nodes (4): Power, Switching off, Switching off and on (deep sleep), Switching on
+Cohesion: 0.33
+Nodes (5): Estimated power budget (2026-11-27, NOT measured), Power, Switching off, Switching off and on (deep sleep), Switching on
 
 ### Community 84 - "State"
 Cohesion: 0.40
@@ -479,24 +481,20 @@ Nodes (11): Decisions to lock before implementation, Display and visual design, 
 Cohesion: 0.31
 Nodes (10): Phase 0 scaffold (memory entry), Coverage targets (90% firmware, 80% web), Milestone 1: Project and toolchain foundation, CI blocked by GitHub billing issue (TODO), Phase 0 - Repo and test foundation, Phase 5 - Retrofit tests and CI hardening, CI workflow (ci.yml), Build esp32s3 step (compile-only) (+2 more)
 
-### Community 90 - "Ui"
-Cohesion: 0.17
-Nodes (6): Outcome, command, index, Ui, entering_back_, return_to_
-
 ### Community 91 - "RSVP behavior (150-800 WPM, word tokens, byte-offset anchor)"
-Cohesion: 0.21
-Nodes (14): Required edge cases, MVP definition (phone uploads PDF, converts to txt, ESP32 renders RSVP), Single-file UTF-8 book format, Browser-side PDF conversion, LittleFS storage and atomic writes, Explicit non-goals, RSVP behavior (150-800 WPM, word tokens, byte-offset anchor), Wi-Fi soft AP session with PIN (+6 more)
+Cohesion: 0.39
+Nodes (8): Required edge cases, Single-file UTF-8 book format, LittleFS storage and atomic writes, RSVP behavior (150-800 WPM, word tokens, byte-offset anchor), Milestone 4: Storage and book service, Milestone 5: RSVP engine, Phase 3 - Storage and book service, Phase 4 - RSVP engine
 
 ### Community 92 - "format.js"
 Cohesion: 0.40
 Nodes (8): buildBookFile(), encoder, headerValue(), utf8ByteLength(), kMaxBookBytes, kMaxHeaderValueBytes, kMaxNameBytes, bookNameFrom()
 
-### Community 93 - "Status"
-Cohesion: 0.17
-Nodes (10): compose_slide_frame(), format_clock(), piece_count(), render(), Status, ap_running, free_bytes, pin (+2 more)
+### Community 93 - "Browser-side PDF conversion"
+Cohesion: 0.47
+Nodes (6): MVP definition (phone uploads PDF, converts to txt, ESP32 renders RSVP), Browser-side PDF conversion, Explicit non-goals, Wi-Fi soft AP session with PIN, Milestone 6: Browser upload application, Phase 6 - Browser upload application
 
 ### Community 94 - "power.cpp"
-Cohesion: 0.13
+Cohesion: 0.10
 Nodes (4): confirm_wake_or_sleep(), enter_deep_sleep(), sleep_now(), size()
 
 ### Community 95 - "ReadingFrame"
@@ -515,13 +513,21 @@ Nodes (5): DisplayControl, calls, last, Pins, level
 Cohesion: 0.20
 Nodes (7): format_pin(), make_route(), register_handlers(), start(), stop(), test_format_pin_pads_with_zeros(), test_format_pin_wraps_modulo_ten_thousand()
 
+### Community 99 - "FakeMutex"
+Cohesion: 0.40
+Nodes (3): FakeMutex, depth, locks
+
 ### Community 101 - "app.js"
-Cohesion: 0.22
+Cohesion: 0.20
 Nodes (6): loadPdfjs(), showNotes(), steps, storage, buildNotesText(), ./vendor/pdf.mjs
 
 ### Community 104 - "RecordingFrame"
 Cohesion: 0.25
 Nodes (6): RecordingFrame, active, elapsed_seconds, max_seconds, paused, sample_rate
+
+### Community 109 - "FakeNotifier"
+Cohesion: 0.22
+Nodes (6): ViewModel::ViewModel(), FakeNotifier, count, depth_at_last, mutex, INotifier
 
 ### Community 111 - "Debouncer"
 Cohesion: 0.33
@@ -529,14 +535,14 @@ Nodes (5): ButtonState, debouncer, next_repeat_at, pressed_at, repeating
 
 ## Knowledge Gaps
 - **446 isolated node(s):** `debouncer`, `pressed_at`, `next_repeat_at`, `repeating`, `pins_` (+441 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 923 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **10 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 924 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **11 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Event` connect `Event` to `Ui`, `test_ui.cpp`, `NetService`, `App`, `recording_service.cpp`, `RecordingService`, `cstdint`, `InputService`, `Fixture`, `InputFixture`, `UiService`, `INet`, `IMic`, `RsvpFixture`, `RsvpService`, `ILibrary`, `.take`, `test_recording_service.cpp`?**
-  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **Why does `Event` connect `Event` to `NetService`, `RecordingService`, `.take`, `Ui`, `test_ui.cpp`, `test_recording_service.cpp`, `RsvpFixture`, `App`, `cstdint`, `InputService`, `InputFixture`, `UiService`, `RsvpFixture`, `RsvpService`, `ILibrary`, `recording_service.cpp`, `Fixture`, `INet`, `IMic`?**
+  _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **What connects `debouncer`, `pressed_at`, `next_repeat_at` to the rest of the system?**
   _446 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `build_enclosure.py` be split into smaller, more focused modules?**
@@ -545,7 +551,7 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.052) - this node is a cross-community bridge._
 - **Should `unity` be split into smaller, more focused modules?**
   _Cohesion score 0.052525252525252523 - nodes in this community are weakly interconnected._
-- **Why does `Ui` connect `Ui` to `unity`, `Snapshot`, `cstdint`, `Screen`, `Message`, `UiService`, `ViewModel`, `display_ui.cpp`, `test_ui.cpp`, `Status`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Why does `Ui` connect `Ui` to `unity`, `Snapshot`, `cstdint`, `Screen`, `Message`, `UiService`, `ViewModel`, `test_ui.cpp`?**
+  _High betweenness centrality (0.039) - this node is a cross-community bridge._
 - **Should `hold_of` be split into smaller, more focused modules?**
   _Cohesion score 0.11764705882352941 - nodes in this community are weakly interconnected._
