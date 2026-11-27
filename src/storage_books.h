@@ -20,6 +20,13 @@ class Guard {
   Guard& operator=(const Guard&) = delete;
 };
 
+// One long-running mutation of the stored files at a time: a book upload, a recording, or
+// the removal of a finished recording. A second caller is refused instead of waiting, so
+// the HTTP task never blocks behind a two-minute capture. The reservation is not a lock:
+// individual file calls still go through Guard.
+bool try_begin_mutation();
+void end_mutation();
+
 std::size_t book_count();
 
 // Writes the title (file name without ".txt") of book `index` into `out`.

@@ -23,6 +23,7 @@ constexpr std::size_t kNameCap = 64;
 constexpr std::size_t kPathCap = 80;  // "/books/" + a 63-byte name + ".pos" fits
 
 bool g_mounted = false;
+bool g_mutation_active = false;
 SemaphoreHandle_t g_lock = nullptr;
 
 // Recursive, so public calls can nest; created on first use.
@@ -88,6 +89,18 @@ bool mounted() { return g_mounted; }
 
 Guard::Guard() { xSemaphoreTakeRecursive(lock_handle(), portMAX_DELAY); }
 Guard::~Guard() { xSemaphoreGiveRecursive(lock_handle()); }
+
+bool try_begin_mutation() {
+  Guard guard;
+  if (!g_mounted || g_mutation_active) return false;
+  g_mutation_active = true;
+  return true;
+}
+
+void end_mutation() {
+  Guard guard;
+  g_mutation_active = false;
+}
 
 std::size_t book_count() {
   Guard guard;
