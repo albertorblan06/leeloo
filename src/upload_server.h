@@ -30,4 +30,7 @@ void mark_activity();
 // Called from the HTTP task after a book is stored. Keep it short: it runs there.
 void set_on_saved(void (*callback)());
 
+// Called from the HTTP task once the phone confirmed the whole WAV and the device removed it.
+void set_on_recording_transferred(void (*callback)());
+
 }  // namespace leeloo::upload_server

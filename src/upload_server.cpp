@@ -11,7 +11,9 @@
 #include <cstdio>
 #include <cstring>
 
+#include "recording.h"
 #include "storage_books.h"
+#include "storage_recording.h"
 #include "upload.h"
 
 namespace leeloo::upload_server {
@@ -35,13 +37,30 @@ char g_pin[kPinDigits + 1] = {};
 char g_token[kTokenChars + 1] = {};  // empty until a client authenticates
 std::atomic<std::uint32_t> g_last_activity_ms{0};  // read by the menu's inactivity timer
 void (*g_on_saved)() = nullptr;
+void (*g_on_recording_transferred)() = nullptr;
 
 void touch() { g_last_activity_ms = millis(); }
+
+// Holds the one-mutation-at-a-time reservation (storage_books.h) for a request.
+class MutationReservation {
+ public:
+  MutationReservation() : acquired_(storage::try_begin_mutation()) {}
+  ~MutationReservation() {
+    if (acquired_) storage::end_mutation();
+  }
+  MutationReservation(const MutationReservation&) = delete;
+  MutationReservation& operator=(const MutationReservation&) = delete;
+  bool acquired() const { return acquired_; }
+
+ private:
+  bool acquired_;
+};
 
 const char* status_line(int status) {
   switch (status) {
     case 400: return "400 Bad Request";
     case 401: return "401 Unauthorized";
+    case 404: return "404 Not Found";
     case 409: return "409 Conflict";
     case 413: return "413 Payload Too Large";
     case 422: return "422 Unprocessable Entity";
@@ -101,8 +120,15 @@ esp_err_t static_handler(httpd_req_t* r) {
     return ESP_OK;
   }
   std::snprintf(path, sizeof path, "%s%.*s.gz", kWebRoot, static_cast<int>(len), uri);
-  File f = LittleFS.open(path, "r");
-  if (!f || f.isDirectory()) {
+  File f;
+  bool usable = false;
+  {
+    storage::Guard guard;
+    f = LittleFS.open(path, "r");
+    usable = f && !f.isDirectory();
+    if (!usable && f) f.close();
+  }
+  if (!usable) {
     httpd_resp_send_404(r);
     return ESP_OK;
   }
@@ -110,11 +136,24 @@ esp_err_t static_handler(httpd_req_t* r) {
   path[std::strlen(path) - 3] = '\0';
   httpd_resp_set_type(r, mime_for(path));
   httpd_resp_set_hdr(r, "Content-Encoding", "gzip");
+  // The library lock covers each read, never the network send, so a slow phone cannot hold it.
   char buf[kChunkBytes];
-  for (int n = f.read(reinterpret_cast<uint8_t*>(buf), sizeof buf); n > 0;
-       n = f.read(reinterpret_cast<uint8_t*>(buf), sizeof buf)) {
-    if (httpd_resp_send_chunk(r, buf, n) != ESP_OK) return ESP_FAIL;
+  esp_err_t sent = ESP_OK;
+  for (;;) {
+    int n = 0;
+    {
+      storage::Guard guard;
+      n = f.read(reinterpret_cast<uint8_t*>(buf), sizeof buf);
+    }
+    if (n <= 0) break;
+    sent = httpd_resp_send_chunk(r, buf, n);
+    if (sent != ESP_OK) break;
   }
+  {
+    storage::Guard guard;
+    f.close();
+  }
+  if (sent != ESP_OK) return ESP_FAIL;
   return httpd_resp_send_chunk(r, nullptr, 0);
 }
 
@@ -202,6 +241,9 @@ esp_err_t books_handler(httpd_req_t* r) {
   if (book_name_from_request(r, name, sizeof name) == 0) return fail_with(r, Result::BadName);
   if (r->content_len == 0) return fail_with(r, Result::InvalidFormat);
   if (r->content_len > kMaxBookBytes) return fail_with(r, Result::TooLarge);
+  // A capture or another upload owns the files: refuse instead of waiting for it.
+  MutationReservation mutation;
+  if (!mutation.acquired()) return fail_with(r, Result::Busy);
 
   char path[sizeof name + 16];
   std::snprintf(path, sizeof path, "%s/%s.txt", kBooksDir, name);
@@ -216,7 +258,11 @@ esp_err_t books_handler(httpd_req_t* r) {
   }
   if (capacity != Result::Ok) return fail_with(r, capacity);
 
-  File f = LittleFS.open(kTempPath, "w");
+  File f;
+  {
+    storage::Guard guard;
+    f = LittleFS.open(kTempPath, "w");
+  }
   if (!f) return fail_with(r, Result::StorageError);
 
   BookValidator validator;
@@ -226,6 +272,7 @@ esp_err_t books_handler(httpd_req_t* r) {
   while (remaining > 0 && result == Result::Ok) {
     const int n = httpd_req_recv(r, reinterpret_cast<char*>(buf), std::min(remaining, sizeof buf));
     if (n <= 0) {  // timeout or closed socket: nobody is left to answer
+      storage::Guard guard;
       f.close();
       LittleFS.remove(kTempPath);
       return ESP_FAIL;
@@ -233,10 +280,16 @@ esp_err_t books_handler(httpd_req_t* r) {
     const std::size_t got = static_cast<std::size_t>(n);
     touch();  // a long transfer is still activity for the inactivity timer
     result = validator.feed(buf, got);
-    if (result == Result::Ok && f.write(buf, got) != got) result = Result::StorageError;
+    if (result == Result::Ok) {
+      storage::Guard guard;
+      if (f.write(buf, got) != got) result = Result::StorageError;
+    }
     remaining -= got;
   }
-  f.close();
+  {
+    storage::Guard guard;
+    f.close();
+  }
   if (result == Result::Ok) result = validator.finish();
   if (result == Result::Ok) {
     storage::Guard guard;  // the menu must not list or delete while the book is moved in
@@ -244,7 +297,10 @@ esp_err_t books_handler(httpd_req_t* r) {
     result = commit(path, LittleFS.exists(path));
   }
   if (result != Result::Ok) {
-    LittleFS.remove(kTempPath);
+    {
+      storage::Guard guard;
+      LittleFS.remove(kTempPath);
+    }
     return fail_with(r, result, r->content_len - remaining);
   }
   if (g_on_saved != nullptr) g_on_saved();
@@ -255,6 +311,98 @@ esp_err_t books_handler(httpd_req_t* r) {
   httpd_resp_set_status(r, "201 Created");
   httpd_resp_set_type(r, "application/json");
   return httpd_resp_send(r, body, HTTPD_RESP_USE_STRLEN);
+}
+
+// Sends the pending WAV. It never deletes it: only a confirmed receipt does (ack below),
+// so a dropped connection leaves the recording on the device for another try.
+esp_err_t recording_handler(httpd_req_t* r) {
+  touch();
+  if (!authorized(r)) return fail_with(r, Result::Unauthorized);
+
+  File file;
+  std::size_t file_size = 0;
+  Result state = Result::Ok;
+  {
+    storage::Guard guard;
+    file = LittleFS.open(storage_recording::kRecordingPath, "r");
+    if (!file) {
+      state = Result::NoRecording;
+    } else {
+      std::uint8_t header[recording::kWavHeaderBytes];
+      file_size = file.size();
+      const bool valid = file.read(header, sizeof header) == sizeof header &&
+                         recording::valid_wav_header(header, file_size) && file.seek(0, SeekSet);
+      if (!valid) {
+        state = Result::StorageError;
+        file.close();
+      }
+    }
+  }
+  if (state != Result::Ok) return fail_with(r, state);
+
+  httpd_resp_set_type(r, "audio/wav");
+  httpd_resp_set_hdr(r, "Content-Disposition", "attachment; filename=\"grabacion.wav\"");
+  httpd_resp_set_hdr(r, "Cache-Control", "no-store");
+  std::uint8_t buffer[kChunkBytes];
+  esp_err_t sent = ESP_OK;
+  for (std::size_t left = file_size; left > 0 && sent == ESP_OK;) {
+    int count = 0;
+    {
+      storage::Guard guard;
+      count = file.read(buffer, std::min(left, sizeof buffer));
+    }
+    if (count <= 0) {
+      sent = ESP_FAIL;
+      break;
+    }
+    sent = httpd_resp_send_chunk(r, reinterpret_cast<const char*>(buffer), count);
+    left -= static_cast<std::size_t>(count);
+    touch();  // a long download is still activity for the inactivity timer
+  }
+  {
+    storage::Guard guard;
+    file.close();
+  }
+  if (sent != ESP_OK) return ESP_FAIL;
+  return httpd_resp_send_chunk(r, nullptr, 0);
+}
+
+// The phone confirms how many bytes it received. Only a count equal to the stored size
+// deletes the WAV: a truncated download must not cost the user the recording.
+esp_err_t recording_ack_handler(httpd_req_t* r) {
+  touch();
+  if (!authorized(r)) return fail_with(r, Result::Unauthorized);
+
+  char body[kMaxAuthBody];
+  if (r->content_len == 0 || r->content_len > sizeof body) return fail_with(r, Result::InvalidAck);
+  if (!read_body(r, body, r->content_len)) return ESP_FAIL;
+  std::uint32_t received = 0;
+  if (!extract_ack_bytes(body, r->content_len, &received)) return fail_with(r, Result::InvalidAck, r->content_len);
+
+  MutationReservation mutation;
+  if (!mutation.acquired()) return fail_with(r, Result::Busy, r->content_len);
+  // Decided under the lock, answered outside it: a slow phone must not hold the library lock.
+  Result outcome = Result::Ok;
+  bool removed = false;
+  {
+    storage::Guard guard;
+    if (storage_recording::exists()) {
+      if (received != storage_recording::size()) {
+        outcome = Result::SizeMismatch;
+      } else if (!storage_recording::remove()) {
+        outcome = Result::StorageError;
+      } else {
+        removed = true;
+      }
+    }
+  }
+  if (outcome != Result::Ok) {
+    send_json_error(r, http_status(outcome), error_code(outcome));
+    return ESP_OK;
+  }
+  if (removed && g_on_recording_transferred != nullptr) g_on_recording_transferred();
+  httpd_resp_set_type(r, "application/json");
+  return httpd_resp_send(r, "{\"deleted\":true}", HTTPD_RESP_USE_STRLEN);
 }
 
 httpd_uri_t make_route(const char* uri, httpd_method_t method, esp_err_t (*handler)(httpd_req_t*)) {
@@ -270,6 +418,8 @@ bool register_handlers() {
   const httpd_uri_t routes[] = {
       make_route("/api/auth", HTTP_POST, auth_handler),
       make_route("/api/books", HTTP_POST, books_handler),
+      make_route("/api/recording", HTTP_GET, recording_handler),
+      make_route("/api/recording/ack", HTTP_POST, recording_ack_handler),
       make_route("/*", HTTP_GET, static_handler),
   };
   for (const httpd_uri_t& route : routes) {
@@ -332,5 +482,7 @@ const char* current_pin() { return g_pin; }
 std::uint32_t last_activity_ms() { return g_last_activity_ms; }
 
 void set_on_saved(void (*callback)()) { g_on_saved = callback; }
+
+void set_on_recording_transferred(void (*callback)()) { g_on_recording_transferred = callback; }
 
 }  // namespace leeloo::upload_server
