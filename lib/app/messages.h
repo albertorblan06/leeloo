@@ -23,10 +23,19 @@ struct RawEdge {
 };
 
 // UiService -> RsvpService.
-enum class RsvpCmd : std::uint8_t { Open, Close, Select, Up, Down };
+// UpRepeat/DownRepeat come from a held button: they change speed while reading
+// and are ignored while paused, so a seek never repeats.
+enum class RsvpCmd : std::uint8_t { Open, Close, Select, Up, Down, UpRepeat, DownRepeat };
 struct RsvpMsg {
   RsvpCmd cmd;
   std::size_t index;  // Open: library index of the book
+  std::uint32_t wpm_step = 25;  // Open: speed increment from Ajustes (rsvp::kWpmSteps)
+};
+
+// UiService -> RecordingService.
+enum class RecordingCmd : std::uint8_t { Start, TogglePause, Stop, Delete };
+struct RecordingMsg {
+  RecordingCmd cmd;
 };
 
 // UiService -> NetService.
@@ -36,6 +45,9 @@ enum class NetCmd : std::uint8_t {
   StopUpload,           // the upload screen closed
   ApplyWifi,            // the Wi-Fi setting changed
   SavedOnUploadScreen,  // a book was stored while the upload screen was open
+  StartRecordingUpload, // Subir audio: like StartUpload, but the phone receives the WAV
+  StopRecordingUpload,
+  RecordingTransferred, // the phone confirmed the WAV while its screen was open: stop soon
 };
 struct NetMsg {
   NetCmd cmd;

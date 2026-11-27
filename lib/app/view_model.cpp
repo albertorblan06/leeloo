@@ -17,6 +17,10 @@ void ViewModel::publish_net(const NetStatus& net) {
   update([&net](Snapshot& s) { s.net = net; });
 }
 
+void ViewModel::publish_recording(const RecordingFrame& recording) {
+  update([&recording](Snapshot& s) { s.recording = recording; });
+}
+
 void ViewModel::request_contrast(std::uint8_t register_value) {
   update([register_value](Snapshot& s) {
     s.contrast_pending = true;

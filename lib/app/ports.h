@@ -49,6 +49,48 @@ class ISettingsStore {
   virtual bool save(const settings::Settings& settings) = 0;
 };
 
+// The last-used reading speed, one value shared by all books. Kept apart from
+// Settings because RsvpService owns it: it is the only one that knows the speed.
+class ISpeedStore {
+ public:
+  virtual ~ISpeedStore() = default;
+  virtual std::uint16_t load() = 0;
+  virtual bool save(std::uint16_t wpm) = 0;
+};
+
+// The microphone, as 16-bit mono PCM at the requested rate. The adapter owns the I2S driver.
+class IMic {
+ public:
+  virtual ~IMic() = default;
+  virtual bool start(std::uint32_t sample_rate) = 0;
+  virtual void stop() = 0;
+  virtual bool pause() = 0;
+  virtual bool resume() = 0;
+  // Reads up to `max` samples, waiting a few ms at most. Returns the count (0 when none
+  // arrived yet) or -1 on a driver error.
+  virtual int read(std::int16_t* out, std::size_t max) = 0;
+};
+
+// Where a recording lives: one temporary file while capturing, one finished WAV.
+class IRecordingStore {
+ public:
+  virtual ~IRecordingStore() = default;
+  virtual bool ready() = 0;           // storage mounted
+  virtual bool exists() = 0;          // a finished WAV is stored
+  virtual std::size_t free_bytes() = 0;
+  // Capture owns the storage between lock() and unlock(), so book uploads and deletes
+  // are refused meanwhile. False when another storage operation is running.
+  virtual bool lock() = 0;
+  virtual void unlock() = 0;
+  virtual bool open_temp(std::uint32_t sample_rate) = 0;  // creates the file with a header
+  virtual bool write(const std::uint8_t* data, std::size_t size) = 0;
+  // Patches the header for `pcm_bytes`, closes and renames to the final WAV.
+  virtual bool finish(std::uint32_t sample_rate, std::uint32_t pcm_bytes) = 0;
+  virtual void abort() = 0;           // closes and removes the temporary file
+  virtual bool remove() = 0;          // deletes the finished WAV; true when none is left
+  virtual void cleanup_temp() = 0;    // leftovers of an interrupted capture
+};
+
 class IDisplayControl {
  public:
   virtual ~IDisplayControl() = default;
