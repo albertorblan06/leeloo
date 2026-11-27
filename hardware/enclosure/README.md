@@ -1,6 +1,6 @@
 # Leeloo enclosure (front shell + back cover)
 
-Size: **73.4 × 100.35 mm**, 38.5 mm thick closed (front 16.8 + back 21.7; the back cover's lip adds 2 mm inside the front shell). A flat, symmetric rounded rectangle (plan radius 14 mm). One 18650 cell lies along Y behind the perfboard beside the ESP32, so the width follows the cell (at 69.4 mm its corners would not fit the r14 arcs; `layout()` asserts the fit). The length is the board plus 4 mm at the top (so the top-right closure post clears the cell end) and 13.15 mm at the bottom: the USB-C port has to sit on the straight wall, 1 mm short of the corner arc, which fixes the bottom end. Everything is computed in `layout()` from `D`.
+Size: **73.4 × 100.35 mm**, 40.0 mm thick closed (front 16.8 + back 23.2; the back cover's lip adds 2 mm inside the front shell). A flat, symmetric rounded rectangle (plan radius 14 mm). One 18650 cell lies along Y behind the perfboard beside the ESP32, so the width follows the cell (at 69.4 mm its corners would not fit the r14 arcs; `layout()` asserts the fit). The length is the board plus 4 mm at the top (so the top-right closure post clears the cell end) and 13.15 mm at the bottom: the USB-C port has to sit on the straight wall, 1 mm short of the corner arc, which fixes the bottom end. Everything is computed in `layout()` from `D`.
 
 Files:
 

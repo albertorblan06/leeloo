@@ -28,7 +28,7 @@ Parts: `hardware/enclosure/front_shell.stl`, `back_cover.stl`, `rocker.stl`, `se
 - [ ] TP4056 doesn't lean toward the bottom wall (wall-side rib) and its USB-C stays aligned with the port. A PCB longer than 28.0 mm won't fit between the stop and the thinned wall. The 1.0 mm wall behind the port printed without gaps or stringing.
 - [ ] SX1308 (modelled 17 × 24 × 12.5 mm) drops into its bay between the ribs; measured: ____ × ____ × ____ mm (tallest part). Its output capacitor fits.
 - [ ] ESP32 USB-C is not reachable with the case closed (no opening this pass): note how to flash it (open the cover) ____.
-- [ ] Case size: 73.4 × 100.35 mm, 38.5 mm thick closed. The two halves print without supports and the 2 mm bed chamfers are clean; the r14 corners and the chamfer meet without a thin wall (1.6 mm at the plate/floor).
+- [ ] Case size: 73.4 × 100.35 mm, 40.0 mm thick closed. The two halves print without supports and the 2 mm bed chamfers are clean; the r14 corners and the chamfer meet without a thin wall (1.6 mm at the plate/floor).
 - [ ] Filament colours: shell black, rocker white, SELECT red.
 - [ ] Front edge of the shell feels smooth; the buttons stand proud and feel right (2.5 mm).
 

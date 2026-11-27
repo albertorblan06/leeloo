@@ -56,7 +56,7 @@ D = dict(
     rocker_end_clr=0.15,                      # rocker ends only (old clearance): tilting moves the neck ~0.13 mm along Y at the plate, 0.08 bound at +-2 deg
     pad_up=2.5,                               # how far the pads stand proud of the plate (console style)
     pad_fillet_rocker=1.0, pad_fillet_select=1.2,
-    flange_w=16.0, flange_t=2.2, leg_d=6.0, gap_half=1.5,
+    flange_w=16.0, flange_t=2.2, leg_d=6.0,
     # Thin walls are whole multiples of the 0.45 mm line width (3 lines = 1.35 mm); 2.0 mm walls are left to the slicer.
     # rib_h: gap between the rocker flange and the plate underside. There is no fulcrum rib any more: the rocker is a seesaw on its two legs,
     # so it is no longer trapped by the shell and can be fitted from inside.
@@ -70,6 +70,7 @@ D = dict(
     top_extra=4.0, tp_gap=1.5,                # extra length at the top for the closure posts; TP4056 gap to the board edge
     cell_d=19.0, cell_len=67.0,               # 18650 + tab + insulation envelope (bare cell 18.0-18.5 x 65.0)
     cell_clr=0.3, cell_gap_esp=0.7,           # clearance round the cell; gap to the ESP32 PCB edge (x = 12.7)
+    back_extra=1.5,                           # extra back depth: the floor, cell and bays drop together, the added air sits between cell and perfboard
     head_h=0.5,                               # M2 countersunk heads stand ~0.5 mm proud of the perfboard back (the cone sinks into the 2.2 mm hole)
     cradle_rail_t=1.35, cradle_h=8.0,         # cell cradle: 1.35 mm side rails (3 lines) and end stops, 8 mm high (below the cell axis)
     cradle_segs=((-30.0, -18.0), (-6.0, 6.0), (18.0, 30.0)),   # Y ranges of the rail segments (not continuous: less to print)
@@ -255,7 +256,7 @@ def layout(k):
     cell_x0 = k['esp_w'] / 2 + k['cell_gap_esp']
     cell_x1 = cell_x0 + k['cell_d']
     cell_y1 = k['cell_len'] / 2
-    z_cell1 = z_rim - k['head_h'] - k['cell_clr']                      # the screw heads sit between the board and the cell
+    z_cell1 = z_rim - k['head_h'] - k['cell_clr'] - k['back_extra']                    # the screw heads sit between the board and the cell
     z_cell0 = z_cell1 - k['cell_d']
     z_in = z_cell0 - k['cell_clr']                                     # inner floor of the back cover
 
@@ -469,7 +470,6 @@ def build():
     chamfer(c, edges_at_z(rk, fz1), k['flange_chamfer'])
     pr = r - k['slide_clr']
     ext(c, stadium_sketch(c, 'necks', sx, yt - end_in, yb + end_in, pr, fz1), z_plate + k['plate'] - fz1, JOIN, rk)
-    ext(c, rect_sketch(c, 'neck gap', sx - 9, yc - k['gap_half'], sx + 9, yc + k['gap_half'], fz1), z_plate + k['plate'] - fz1, CUT, rk)
     ext(c, stadium_sketch(c, 'pad', sx, yt - end_in, yb + end_in, pr, z_top), k['pad_up'], JOIN, rk)
     fillet(c, edges_at_z(rk, z_top + k['pad_up']), k['pad_fillet_rocker'])
     leg_z0 = k['sw12_total']
