@@ -47,6 +47,9 @@ bool StorageLibrary::save_position(const char* title, std::size_t offset) {
 
 bool NvsSettings::save(const settings::Settings& settings) { return settings_store::save(settings); }
 
+std::uint16_t NvsSpeed::load() { return settings_store::load_reading_wpm(); }
+bool NvsSpeed::save(std::uint16_t wpm) { return settings_store::save_reading_wpm(wpm); }
+
 void DisplayContrast::set_contrast(std::uint8_t register_value) { view_->request_contrast(register_value); }
 
 bool SoftAp::running() { return upload_server::running(); }

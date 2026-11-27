@@ -40,6 +40,12 @@ class NvsSettings : public app::ISettingsStore {
   bool save(const settings::Settings& settings) override;
 };
 
+class NvsSpeed : public app::ISpeedStore {
+ public:
+  std::uint16_t load() override;
+  bool save(std::uint16_t wpm) override;
+};
+
 // Contrast is a bus write, and the display task owns the bus: the request goes
 // through the view model and is applied there.
 class DisplayContrast : public app::IDisplayControl {
