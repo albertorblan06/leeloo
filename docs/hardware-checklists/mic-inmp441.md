@@ -1,5 +1,7 @@
 # INMP441 microphone (bring-up)
 
+The production firmware records with this wiring (`audio-recording.md`). This file is the single source for it.
+
 Test firmware: `pio run -e mic-test -t upload` (source in `tools/mic_test/`). Serial over the native USB port at 115200.
 
 ## Wiring
