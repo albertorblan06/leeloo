@@ -12,11 +12,14 @@
 #include <new>
 
 #include "app_adapters.h"
+#include "audio_adapters.h"
 #include "display_ui.h"
 #include "input_service.h"
 #include "messages.h"
 #include "net_service.h"
 #include "pins.h"
+#include "power.h"
+#include "recording_service.h"
 #include "rsvp_service.h"
 #include "rtos_freertos.h"
 #include "storage_books.h"
@@ -28,6 +31,7 @@ namespace leeloo::tasks {
 namespace {
 
 using app::NetMsg;
+using app::RecordingMsg;
 using app::RawEdge;
 using app::RsvpMsg;
 using ui::Event;
@@ -44,6 +48,7 @@ constexpr UBaseType_t kRsvpPriority = 5;
 constexpr UBaseType_t kInputPriority = 4;
 constexpr UBaseType_t kUiPriority = 3;
 constexpr UBaseType_t kDisplayPriority = 2;
+constexpr UBaseType_t kRecorderPriority = 2;  // same as display; I2S has 256-512 ms of buffer
 constexpr UBaseType_t kNetPriority = 2;
 
 constexpr BaseType_t kUiCore = 1;
@@ -55,10 +60,13 @@ constexpr std::uint32_t kInputStack = 4096;
 constexpr std::uint32_t kRsvpStack = 6144;
 constexpr std::uint32_t kUiStack = 6144;
 constexpr std::uint32_t kDisplayStack = 6144;
+constexpr std::uint32_t kRecorderStack = 6144;
 constexpr std::uint32_t kNetStack = 8192;
 
 // Every task wakes at least this often to feed the watchdog, even with nothing to do.
 constexpr std::uint32_t kHeartbeatMs = 1000;
+constexpr std::uint32_t kFreeSpaceCacheMs = 2000;
+constexpr std::uint32_t kGoodbyeMs = 700;
 // Longer than the 5 s default: starting the soft AP can block the net task for seconds.
 constexpr std::uint32_t kWatchdogTimeoutS = 10;
 
@@ -66,6 +74,7 @@ constexpr std::size_t kEdgeQueueLength = 16;
 constexpr std::size_t kUiQueueLength = 16;
 constexpr std::size_t kRsvpQueueLength = 8;
 constexpr std::size_t kNetQueueLength = 8;
+constexpr std::size_t kRecordingQueueLength = 4;
 
 static_assert(pins::kButtonCount == app::kButtonCount, "one pin per button");
 
@@ -76,10 +85,12 @@ struct App {
   rtos::freertos::Queue ui_port{kUiQueueLength, sizeof(Event)};
   rtos::freertos::Queue rsvp_port{kRsvpQueueLength, sizeof(RsvpMsg)};
   rtos::freertos::Queue net_port{kNetQueueLength, sizeof(NetMsg)};
+  rtos::freertos::Queue recording_port{kRecordingQueueLength, sizeof(RecordingMsg)};
   rtos::Queue<RawEdge> edges{&edge_port};
   rtos::Queue<Event> ui_events{&ui_port};
   rtos::Queue<RsvpMsg> rsvp_cmds{&rsvp_port};
   rtos::Queue<NetMsg> net_cmds{&net_port};
+  rtos::Queue<RecordingMsg> recording_cmds{&recording_port};
 
   // What the display draws: written by UI, RSVP and net, read by the display task.
   rtos::freertos::Mutex view_mutex;
@@ -90,19 +101,24 @@ struct App {
   adapters::GpioPins pin_reader;
   adapters::StorageLibrary library;
   adapters::NvsSettings settings_store;
+  adapters::NvsSpeed speed_store;
   adapters::DisplayContrast contrast{&view};
   adapters::SoftAp ap;
+  adapters::I2sMic mic;
+  adapters::LittleFsRecordingStore recording_store;
 
   app::InputService input{&pin_reader, &ui_events, &log};
-  app::RsvpService rsvp{&library, &ui_events, display::piece_count, &log};
+  app::RsvpService rsvp{&library, &ui_events, display::piece_count, &speed_store, &log};
   app::NetService net{&ap, &ui_events, &log};
+  app::RecordingService recorder{&mic, &recording_store, &ui_events, &log};
   app::UiService ui;
 
   explicit App(const settings::Settings& boot)
-      : ui(boot, &library, &settings_store, &contrast, &rsvp_cmds, &net_cmds, &log) {}
+      : ui(boot, &library, &settings_store, &contrast, &rsvp_cmds, &net_cmds, &recording_cmds, &log) {}
 
   bool ok() const {
-    return edge_port.ok() && ui_port.ok() && rsvp_port.ok() && net_port.ok() && view_mutex.ok();
+    return edge_port.ok() && ui_port.ok() && rsvp_port.ok() && net_port.ok() &&
+           recording_port.ok() && view_mutex.ok();
   }
 };
 
@@ -139,6 +155,15 @@ void on_book_saved() {
   }
 }
 
+// Called from the HTTP task (core 0) after the phone confirmed the whole WAV and the device
+// removed it. Only the UI hears about it: if the recording-upload screen is open, the UI
+// asks the net service to stop, so the net service receives the news exactly once.
+void on_recording_transferred() {
+  if (!g_app->ui_events.send(Event::AudioTransferred, app::kPostTimeoutMs)) {
+    g_app->log.log("Cola de UI llena: se pierde AudioTransferred");
+  }
+}
+
 // --- Task bodies: wait for a message or a deadline, hand it to the service ------
 
 void input_task(void*) {
@@ -146,7 +171,7 @@ void input_task(void*) {
   for (;;) {
     feed();
     RawEdge edge;
-    if (g_app->edges.receive(&edge, capped(g_app->input.wait_ms()))) {
+    if (g_app->edges.receive(&edge, capped(g_app->input.wait_ms(millis())))) {
       g_app->input.on_edge(edge);
     } else {
       g_app->input.on_timeout(millis());
@@ -203,11 +228,32 @@ void net_task(void*) {
   }
 }
 
+void recording_task(void*) {
+  supervise();
+  g_app->recorder.begin();
+  g_app->view.publish_recording(g_app->recorder.frame());
+  for (;;) {
+    feed();
+    RecordingMsg msg;
+    bool changed;
+    if (g_app->recording_cmds.receive(&msg, capped(g_app->recorder.wait_ms(millis())))) {
+      changed = g_app->recorder.handle(msg, millis());
+    } else {
+      changed = false;
+    }
+    changed = g_app->recorder.poll(millis()) || changed;
+    if (changed) g_app->view.publish_recording(g_app->recorder.frame());
+  }
+}
+
 // The only task that touches the I2C bus and the frame buffer.
 void display_task(void*) {
   supervise();
   app::Snapshot snap;
   std::uint32_t seen = 0;
+  std::size_t free_bytes_cached = 0;
+  std::uint32_t free_read_ms = 0;
+  ui::Screen free_screen = ui::Screen::Root;  // the screen the cached value was read for
   for (;;) {
     feed();
     ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(kHeartbeatMs));
@@ -215,10 +261,29 @@ void display_task(void*) {
     if (snap.contrast_pending) display::set_contrast(snap.contrast);
     display::Status status;
     status.storage_ok = storage::mounted();
-    if (snap.ui.screen() == ui::Screen::About) status.free_bytes = storage::free_bytes();
+    // Free space walks the filesystem under the library lock, so only the screens that show it
+    // pay for it, and at most once every two seconds while the screen stays the same.
+    const bool shows_free = snap.ui.screen() == ui::Screen::About ||
+                            (snap.ui.screen() == ui::Screen::RecordMenu && !snap.ui.recording_available());
+    if (shows_free) {
+      const std::uint32_t now = millis();
+      if (snap.ui.screen() != free_screen || now - free_read_ms >= kFreeSpaceCacheMs) {
+        free_bytes_cached = storage::free_bytes();
+        free_read_ms = now;
+        free_screen = snap.ui.screen();
+      }
+      status.free_bytes = free_bytes_cached;
+    } else {
+      free_screen = ui::Screen::Root;
+    }
     status.ap_running = snap.net.running;
     status.pin = snap.net.pin;
+    status.recording = snap.recording;
     display::render(snap.ui, status, snap.frame);
+    if (snap.ui.screen() == ui::Screen::PoweringOff) {
+      delay(kGoodbyeMs);  // long enough to read "Apagando..."
+      power::enter_deep_sleep();
+    }
   }
 }
 
@@ -244,10 +309,12 @@ void start(const settings::Settings& boot) {
   g_app->display_wake.set_task(spawn(display_task, "display", kDisplayStack, kDisplayPriority, kUiCore));
   spawn(ui_task, "ui", kUiStack, kUiPriority, kUiCore);
   spawn(rsvp_task, "rsvp", kRsvpStack, kRsvpPriority, kUiCore);
+  spawn(recording_task, "recording", kRecorderStack, kRecorderPriority, kUiCore);
   spawn(net_task, "net", kNetStack, kNetPriority, kNetCore);
   spawn(input_task, "input", kInputStack, kInputPriority, kUiCore);
 
   upload_server::set_on_saved(on_book_saved);
+  upload_server::set_on_recording_transferred(on_recording_transferred);
   g_app->net_cmds.send(NetMsg{app::NetCmd::Boot, boot.wifi, false}, app::kPostTimeoutMs);
 
   for (const std::uint8_t pin : pins::kButtonPins) pinMode(pin, INPUT_PULLUP);
