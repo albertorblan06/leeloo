@@ -9,10 +9,19 @@ std::uint8_t step_percent(std::uint8_t value, int direction) {
   return static_cast<std::uint8_t>(next);
 }
 
-std::uint8_t display_register(std::uint8_t brightness_percent, std::uint8_t contrast_percent) {
-  // Integer math with +5000 rounds half up; the largest product fits in 32 bits.
-  const std::uint32_t scaled = 255u * brightness_percent * contrast_percent;
-  return static_cast<std::uint8_t>((scaled + 5000u) / 10000u);
+std::uint16_t adjust_reading_step(std::uint16_t value, int direction) {
+  constexpr int kCount = sizeof(rsvp::kWpmSteps) / sizeof(rsvp::kWpmSteps[0]);
+  const std::uint32_t current = rsvp::normalize_wpm_step(value);
+  int index = 0;
+  while (index < kCount - 1 && rsvp::kWpmSteps[index] != current) ++index;
+  index += direction > 0 ? 1 : (direction < 0 ? -1 : 0);
+  index = index < 0 ? 0 : (index > kCount - 1 ? kCount - 1 : index);
+  return static_cast<std::uint16_t>(rsvp::kWpmSteps[index]);
+}
+
+std::uint8_t display_register(std::uint8_t brightness_percent) {
+  // Integer math with +50 rounds half up; the largest product fits in 32 bits.
+  return static_cast<std::uint8_t>((255u * brightness_percent + 50u) / 100u);
 }
 
 namespace {
@@ -28,11 +37,9 @@ std::uint8_t snap_percent(std::uint8_t value) {
 Settings sanitize(Settings raw) {
   Settings out = raw;
   out.brightness_percent = snap_percent(raw.brightness_percent);
-  out.contrast_percent = snap_percent(raw.contrast_percent);
+  out.reading_step_ppm = static_cast<std::uint16_t>(rsvp::normalize_wpm_step(raw.reading_step_ppm));
   const auto wifi = static_cast<std::uint8_t>(raw.wifi);
   if (wifi > static_cast<std::uint8_t>(WifiMode::On)) out.wifi = Settings{}.wifi;
-  const auto mode = static_cast<std::uint8_t>(raw.brightness_mode);
-  if (mode > static_cast<std::uint8_t>(BrightnessMode::Manual)) out.brightness_mode = Settings{}.brightness_mode;
   return out;
 }
 
@@ -43,8 +50,5 @@ WifiMode cycle_wifi(WifiMode mode, int direction) {
   return static_cast<WifiMode>(next);
 }
 
-BrightnessMode cycle_brightness(BrightnessMode mode) {
-  return mode == BrightnessMode::Auto ? BrightnessMode::Manual : BrightnessMode::Auto;
-}
 
 }  // namespace leeloo::settings

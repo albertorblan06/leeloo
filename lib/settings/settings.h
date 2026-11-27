@@ -2,11 +2,12 @@
 
 #include <cstdint>
 
+#include "rsvp.h"
+
 // Persistent device settings (docs/DEVICE-MENU.md §2 Ajustes). Pure logic: the
 // NVS adapter lives in src/ and only moves these values to and from storage.
 namespace leeloo::settings {
 
-enum class BrightnessMode : std::uint8_t { Auto, Manual };
 enum class WifiMode : std::uint8_t { Off, Auto, On };
 
 // Percentages are 10..100 in steps of 5 (DEVICE-MENU.md §2).
@@ -15,26 +16,31 @@ constexpr std::uint8_t kMaxPercent = 100;
 constexpr std::uint8_t kStepPercent = 5;
 
 struct Settings {
-  BrightnessMode brightness_mode = BrightnessMode::Manual;
+  // "Brillo" in the menu. The SH1106 has no separate backlight, so this drives its contrast
+  // register directly (display_register); there is no light sensor, hence no Auto mode.
   std::uint8_t brightness_percent = kMaxPercent;
-  std::uint8_t contrast_percent = kMaxPercent;
-  // Automático keeps the AP off until Biblioteca > Subir. The spec does not set a default.
+  // Step of the live speed change while reading (rsvp::kWpmSteps). The last-used
+  // speed itself is not here: RsvpService owns and saves it (ISpeedStore).
+  std::uint16_t reading_step_ppm = static_cast<std::uint16_t>(rsvp::kDefaultWpmStep);
+  // Automático keeps the AP off until Biblioteca > Añadir libro or Grabadora > Enviar al móvil. The spec does not set a default.
   WifiMode wifi = WifiMode::Auto;
 };
 
 // Moves a percentage by one step (direction +1 or -1), clamped to the range.
 std::uint8_t step_percent(std::uint8_t value, int direction);
 
-// Single SH1106 contrast register from the brightness and contrast percentages:
-// round(255 * brightness * contrast / 100²). The mapping is an approximation; the
-// real useful range is an open hardware check in docs/DEVICE-MENU.md §5.
-std::uint8_t display_register(std::uint8_t brightness_percent, std::uint8_t contrast_percent);
+// Moves the reading step to the next (+1) or previous (-1) entry of rsvp::kWpmSteps,
+// clamped at both ends.
+std::uint16_t adjust_reading_step(std::uint16_t value, int direction);
 
-// Makes a value read back from storage safe to use: percentages are clamped and
-// rounded to the 5% grid, and an unknown Wi-Fi value falls back to the default.
+// SH1106 contrast register for a brightness percentage: round(255 * percent / 100). The mapping
+// is an approximation; the real useful range is an open hardware check in docs/DEVICE-MENU.md §5.
+std::uint8_t display_register(std::uint8_t brightness_percent);
+
+// Makes a value read back from storage safe to use: the percentage is clamped and rounded to the
+// 5% grid, and an unknown Wi-Fi value falls back to the default.
 Settings sanitize(Settings raw);
 
 WifiMode cycle_wifi(WifiMode mode, int direction);
-BrightnessMode cycle_brightness(BrightnessMode mode);
 
 }  // namespace leeloo::settings
